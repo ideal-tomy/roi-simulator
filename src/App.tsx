@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { calculate, fmtInt, fmtMan, fmtPayback, type Inputs } from './lib/calc';
 import { PRESETS, getPreset, type CategoryKey } from './lib/presets';
 import { estimate, type Answers } from './lib/estimate';
-import { getKit } from './lib/kits';
+import { KITS, defaultKitId, getKit } from './lib/kits';
 import { readUrl, writeUrl, shareUrl, embedSnippet } from './lib/url';
 import { Slider, Money } from './components/Fields';
 import { BreakEvenChart } from './components/BreakEvenChart';
@@ -16,7 +16,6 @@ function Rich({ text }: { text: string }) {
 
 export default function App() {
   const url = useMemo(() => readUrl(), []);
-  const kit = useMemo(() => getKit(url.kit), [url.kit]);
 
   const [industryId, setIndustryId] = useState(getPreset(url.industry).id);
   const preset = getPreset(industryId);
@@ -29,6 +28,8 @@ export default function App() {
 
   const [inputs, setInputs] = useState<Inputs>({ ...category.defaults, ...url.inputs });
   const [answers, setAnswers] = useState<Answers>(url.answers);
+  const [kitId, setKitId] = useState<string | null>(url.kit);
+  const kit = useMemo(() => getKit(kitId), [kitId]);
 
   // 見積もりから初期費用を自動投入するか（ユーザーが手で触ったら止める）
   const [manualCost, setManualCost] = useState(
@@ -36,12 +37,32 @@ export default function App() {
   );
 
   const [copied, setCopied] = useState<string | null>(null);
+  const [scrollToEstimate, setScrollToEstimate] = useState(false);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const estimateRef = useRef<HTMLDivElement>(null);
 
   const est = useMemo(
     () => (kit ? estimate(kit, answers) : null),
     [kit, answers],
   );
+
+  const openEstimate = (id?: string | null) => {
+    const next = id ?? kitId ?? defaultKitId();
+    if (!next) return;
+    setKitId(next);
+    setScrollToEstimate(true);
+  };
+
+  const closeEstimate = () => {
+    setKitId(null);
+    setAnswers({});
+  };
+
+  useEffect(() => {
+    if (!scrollToEstimate || !kit) return;
+    estimateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setScrollToEstimate(false);
+  }, [scrollToEstimate, kit]);
 
   // 概算の「上限」を開発費用として自動投入（厳しい方で回収が成立するかを見る）
   useEffect(() => {
@@ -86,14 +107,14 @@ export default function App() {
     industry: industryId,
     category: catKey,
     inputs,
-    kit: url.kit,
+    kit: kitId,
     answers,
     from: url.from,
   };
 
   useEffect(() => {
     writeUrl({ ...urlArgs, embed: url.embed });
-  }, [industryId, catKey, inputs, answers, url.embed, url.kit, url.from]);
+  }, [industryId, catKey, inputs, answers, url.embed, kitId, url.from]);
 
   // 埋め込み時：親フレームに高さを通知
   useEffect(() => {
@@ -130,7 +151,19 @@ export default function App() {
           <header className="bar">
             <div className="wrap">
               <div className="brand"><span className="dot" />AXEON</div>
-              <div className="tag">{preset.tag}</div>
+              <div className="bar-right">
+                <div className="tag">{preset.tag}</div>
+                {KITS.length > 0 && (
+                  <button
+                    type="button"
+                    className="bar-est-btn"
+                    aria-pressed={!!kit}
+                    onClick={() => (kit ? closeEstimate() : openEstimate())}
+                  >
+                    {kit ? '見積もりを閉じる' : '概算見積もりを開く'}
+                  </button>
+                )}
+              </div>
             </div>
           </header>
           <div className="picker">
@@ -147,17 +180,53 @@ export default function App() {
         </>
       )}
 
-      {kit && est && (
-        <EstimateWizard
-          kit={kit}
-          answers={answers}
-          est={est}
-          onAnswer={(qid, value) =>
-            setAnswers((a) => ({ ...a, [qid]: a[qid] === value ? '' : value }))
-          }
-          onReset={() => setAnswers({})}
-        />
+      {url.embed && !kit && KITS.length > 0 && (
+        <div className="est-launch embed-launch">
+          <div className="wrap">
+            <button type="button" className="est-launch-btn" onClick={() => openEstimate()}>
+              概算見積もりを開く
+            </button>
+            <span className="est-launch-hint">質問に答えると、開発費の目安が分かります</span>
+          </div>
+        </div>
       )}
+
+      <div ref={estimateRef}>
+        {kit && est && (
+          <>
+            <div className="kit-picker">
+              <div className="wrap">
+                <span className="lb">見積もる内容</span>
+                {KITS.map((k) => (
+                  <button
+                    key={k.id}
+                    type="button"
+                    aria-pressed={k.id === kitId}
+                    onClick={() => {
+                      setAnswers({});
+                      openEstimate(k.id);
+                    }}
+                  >
+                    {k.name}
+                  </button>
+                ))}
+                <button type="button" className="kit-close" onClick={closeEstimate}>
+                  閉じる
+                </button>
+              </div>
+            </div>
+            <EstimateWizard
+              kit={kit}
+              answers={answers}
+              est={est}
+              onAnswer={(qid, value) =>
+                setAnswers((a) => ({ ...a, [qid]: a[qid] === value ? '' : value }))
+              }
+              onReset={() => setAnswers({})}
+            />
+          </>
+        )}
+      </div>
 
       <section className="hero">
         <div className="wrap">
@@ -168,6 +237,14 @@ export default function App() {
             ))}
           </h1>
           <p className="lead">{category.lead}</p>
+          {!kit && KITS.length > 0 && (
+            <div className="est-launch hero-launch">
+              <button type="button" className="est-launch-btn" onClick={() => openEstimate()}>
+                概算見積もりを開く
+              </button>
+              <span className="est-launch-hint">いくらで作れるか、質問に答えてその場で出します</span>
+            </div>
+          )}
           <div className="tabs" role="tablist" aria-label="部署カテゴリ">
             {preset.categories.map((c) => (
               <button key={c.key} className="tab" role="tab"

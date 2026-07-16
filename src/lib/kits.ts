@@ -7,3 +7,7 @@ export const KITS: Kit[] = Object.values(modules).map((m) => m.default);
 
 export const getKit = (id: string | null): Kit | null =>
   KITS.find((k) => k.id === id) ?? null;
+
+/** 単価が入っている kit を優先。なければ先頭。 */
+export const defaultKitId = (): string | null =>
+  KITS.find((k) => k.unitPrice > 0 && k.baseDays > 0)?.id ?? KITS[0]?.id ?? null;
