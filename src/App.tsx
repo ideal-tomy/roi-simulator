@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { calculate, fmtInt, fmtMan, fmtPayback, type Inputs } from './lib/calc';
 import { PRESETS, getPreset, type CategoryKey } from './lib/presets';
+import { estimate, type Answers } from './lib/estimate';
+import { getKit } from './lib/kits';
 import { readUrl, writeUrl, shareUrl, embedSnippet } from './lib/url';
 import { Slider, Money } from './components/Fields';
 import { BreakEvenChart } from './components/BreakEvenChart';
+import { EstimateWizard } from './components/EstimateWizard';
 
 /** **強調** を <b> に変換する軽量マークアップ */
 function Rich({ text }: { text: string }) {
@@ -13,55 +16,94 @@ function Rich({ text }: { text: string }) {
 
 export default function App() {
   const url = useMemo(() => readUrl(), []);
+  const kit = useMemo(() => getKit(url.kit), [url.kit]);
+
   const [industryId, setIndustryId] = useState(getPreset(url.industry).id);
   const preset = getPreset(industryId);
 
-  const initialCat: CategoryKey = url.category ?? preset.categories[0].key;
-  const [catKey, setCatKey] = useState<CategoryKey>(initialCat);
+  const [catKey, setCatKey] = useState<CategoryKey>(
+    url.category ?? preset.categories[0].key,
+  );
   const category =
     preset.categories.find((c) => c.key === catKey) ?? preset.categories[0];
 
-  // URLに数字があればそれを優先（＝共有リンクの復元）
-  const [inputs, setInputs] = useState<Inputs>({
-    ...category.defaults,
-    ...url.inputs,
-  });
+  const [inputs, setInputs] = useState<Inputs>({ ...category.defaults, ...url.inputs });
+  const [answers, setAnswers] = useState<Answers>(url.answers);
+
+  // 見積もりから初期費用を自動投入するか（ユーザーが手で触ったら止める）
+  const [manualCost, setManualCost] = useState(
+    url.inputs.initial !== undefined || url.inputs.monthly !== undefined,
+  );
 
   const [copied, setCopied] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  const est = useMemo(
+    () => (kit ? estimate(kit, answers) : null),
+    [kit, answers],
+  );
+
+  // 概算の「上限」を開発費用として自動投入（厳しい方で回収が成立するかを見る）
+  useEffect(() => {
+    if (!est || !est.calibrated || manualCost) return;
+    setInputs((s) => ({
+      ...s,
+      initial: Math.round(est.devHigh),
+      monthly: Math.round(est.monthlyHigh),
+    }));
+  }, [est, manualCost]);
 
   const result = useMemo(() => calculate(inputs), [inputs]);
   const pay = fmtPayback(result.payback);
   const ok = isFinite(result.payback);
 
-  const set = (k: keyof Inputs) => (v: number) => setInputs((s) => ({ ...s, [k]: v }));
+  const set = (k: keyof Inputs) => (v: number) => {
+    if (k === 'initial' || k === 'monthly') setManualCost(true);
+    setInputs((s) => ({ ...s, [k]: v }));
+  };
 
-  // 業界／カテゴリを変えたらプリセット値を流し込む
   const switchIndustry = (id: string) => {
     const p = getPreset(id);
     const c = p.categories.find((x) => x.key === catKey) ?? p.categories[0];
     setIndustryId(id);
     setCatKey(c.key);
-    setInputs(c.defaults);
+    setInputs((s) => ({
+      ...c.defaults,
+      // 見積もり連動中は費用側を維持する
+      ...(manualCost || !est?.calibrated ? {} : { initial: s.initial, monthly: s.monthly }),
+    }));
   };
   const switchCategory = (k: CategoryKey) => {
     const c = preset.categories.find((x) => x.key === k)!;
     setCatKey(k);
-    setInputs(c.defaults);
+    setInputs((s) => ({
+      ...c.defaults,
+      ...(manualCost || !est?.calibrated ? {} : { initial: s.initial, monthly: s.monthly }),
+    }));
   };
 
-  // 入力が変わるたびURLに書き戻す → そのままリンクで共有できる
-  useEffect(() => {
-    writeUrl(industryId, catKey, inputs, url.embed);
-  }, [industryId, catKey, inputs, url.embed]);
+  const urlArgs = {
+    industry: industryId,
+    category: catKey,
+    inputs,
+    kit: url.kit,
+    answers,
+    from: url.from,
+  };
 
-  // 埋め込み時：親フレームに高さを通知（親側で高さ自動調整が可能）
+  useEffect(() => {
+    writeUrl({ ...urlArgs, embed: url.embed });
+  }, [industryId, catKey, inputs, answers, url.embed, url.kit, url.from]);
+
+  // 埋め込み時：親フレームに高さを通知
   useEffect(() => {
     if (!url.embed) return;
     document.body.classList.add('embed');
     const post = () => {
-      const h = document.documentElement.scrollHeight;
-      window.parent?.postMessage({ type: 'roi-simulator:height', height: h }, '*');
+      window.parent?.postMessage(
+        { type: 'roi-simulator:height', height: document.documentElement.scrollHeight },
+        '*',
+      );
     };
     post();
     const ro = new ResizeObserver(post);
@@ -73,12 +115,13 @@ export default function App() {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(kind);
-      setTimeout(() => setCopied(null), 1800);
     } catch {
       setCopied('failed');
-      setTimeout(() => setCopied(null), 1800);
     }
+    setTimeout(() => setCopied(null), 1800);
   };
+
+  const autoFilled = !!est?.calibrated && !manualCost;
 
   return (
     <div ref={bodyRef}>
@@ -102,6 +145,18 @@ export default function App() {
             </div>
           </div>
         </>
+      )}
+
+      {kit && est && (
+        <EstimateWizard
+          kit={kit}
+          answers={answers}
+          est={est}
+          onAnswer={(qid, value) =>
+            setAnswers((a) => ({ ...a, [qid]: a[qid] === value ? '' : value }))
+          }
+          onReset={() => setAnswers({})}
+        />
       )}
 
       <section className="hero">
@@ -145,9 +200,21 @@ export default function App() {
                        onChange={set('wage')} />
                 <Money label={category.otherLabel} value={inputs.other} suffix="円/年"
                        hint={category.otherHint} onChange={set('other')} />
-                <Money label="導入の初期費用" value={inputs.initial} suffix="円" onChange={set('initial')} />
+
+                {autoFilled && (
+                  <div className="autobadge">
+                    ↓ 上の概算見積もり（上限）から自動入力しています。手で直すと自動入力は止まります。
+                  </div>
+                )}
+                <Money label="導入の初期費用" value={inputs.initial} suffix="円"
+                       onChange={set('initial')} />
                 <Money label="毎月の利用料" value={inputs.monthly} suffix="円/月" step={10000}
                        onChange={set('monthly')} />
+                {manualCost && est?.calibrated && (
+                  <button className="relink" onClick={() => setManualCost(false)}>
+                    概算見積もりの金額に戻す
+                  </button>
+                )}
               </div>
             </div>
 
@@ -224,13 +291,12 @@ export default function App() {
           <div className="actions">
             {!url.embed && (
               <button className="cta ghost"
-                      onClick={() => copy(embedSnippet(industryId, catKey, inputs), 'embed')}>
-                {copied === 'embed' ? '埋め込みタグをコピーしました' : '埋め込みタグをコピー'}
+                      onClick={() => copy(embedSnippet(urlArgs), 'embed')}>
+                {copied === 'embed' ? 'コピーしました' : '埋め込みタグをコピー'}
               </button>
             )}
-            <button className="cta"
-                    onClick={() => copy(shareUrl(industryId, catKey, inputs), 'link')}>
-              {copied === 'link' ? 'リンクをコピーしました' : 'この試算をリンクで送る'}
+            <button className="cta" onClick={() => copy(shareUrl(urlArgs), 'link')}>
+              {copied === 'link' ? 'コピーしました' : 'この試算をリンクで送る'}
             </button>
           </div>
         </div>

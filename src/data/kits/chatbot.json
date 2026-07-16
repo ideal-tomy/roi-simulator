@@ -1,0 +1,123 @@
+{
+  "id": "chatbot",
+  "name": "社内ナレッジチャットボット",
+  "summary": "社内文書を検索して、根拠つきで答えるチャットボット",
+  "unitPrice": 0,
+  "setupFee": 0,
+  "baseDays": 0,
+  "monthly": {
+    "infra": 0,
+    "usage": 0,
+    "maintenanceRate": 0.12
+  },
+  "rangeSpread": {
+    "low": 0.85,
+    "high": 1.25
+  },
+  "questions": [
+    {
+      "id": "files",
+      "label": "読み込ませたい資料は、どれくらいありますか？",
+      "hint": "マニュアル、仕様書、議事録など。おおよそで構いません。",
+      "options": [
+        {
+          "value": "s",
+          "label": "〜50ファイル",
+          "days": 0
+        },
+        {
+          "value": "m",
+          "label": "51〜500ファイル",
+          "days": 0
+        },
+        {
+          "value": "l",
+          "label": "500ファイル以上",
+          "days": 0
+        }
+      ]
+    },
+    {
+      "id": "format",
+      "label": "その資料は、どんな形式ですか？",
+      "hint": "紙やスキャンPDFが混ざると、読み取りの手間が増えます。",
+      "options": [
+        {
+          "value": "digital",
+          "label": "WordやExcel（文字が選択できる）",
+          "days": 0
+        },
+        {
+          "value": "mixed",
+          "label": "PDFが中心",
+          "days": 0
+        },
+        {
+          "value": "scan",
+          "label": "紙・スキャン画像が多い",
+          "days": 0
+        }
+      ]
+    },
+    {
+      "id": "users",
+      "label": "使う人は何人くらいですか？",
+      "options": [
+        {
+          "value": "s",
+          "label": "〜30人",
+          "factor": 1
+        },
+        {
+          "value": "m",
+          "label": "31〜100人",
+          "factor": 1
+        },
+        {
+          "value": "l",
+          "label": "101人以上",
+          "factor": 1
+        }
+      ]
+    },
+    {
+      "id": "login",
+      "label": "ログイン機能は必要ですか？",
+      "hint": "部署ごとに見せる資料を分けたい場合は「必要」です。",
+      "options": [
+        {
+          "value": "no",
+          "label": "不要（社内からのみ利用）",
+          "days": 0
+        },
+        {
+          "value": "yes",
+          "label": "必要（人ごとに権限を分ける）",
+          "days": 0
+        }
+      ]
+    },
+    {
+      "id": "integration",
+      "label": "いま使っているシステムとつなぎますか？",
+      "hint": "kintone、サイボウズ、基幹システムなど。",
+      "options": [
+        {
+          "value": "none",
+          "label": "つながなくてよい",
+          "factor": 1
+        },
+        {
+          "value": "one",
+          "label": "1つとつなぐ",
+          "factor": 1
+        },
+        {
+          "value": "many",
+          "label": "複数とつなぐ",
+          "factor": 1
+        }
+      ]
+    }
+  ]
+}

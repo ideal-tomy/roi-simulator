@@ -1,0 +1,100 @@
+{
+  "id": "report-auto",
+  "name": "報告書・帳票の自動作成",
+  "summary": "現場の入力から、提出用の報告書を自動で組み立てる",
+  "unitPrice": 0,
+  "setupFee": 0,
+  "baseDays": 0,
+  "monthly": {
+    "infra": 0,
+    "usage": 0,
+    "maintenanceRate": 0.12
+  },
+  "rangeSpread": {
+    "low": 0.85,
+    "high": 1.25
+  },
+  "questions": [
+    {
+      "id": "types",
+      "label": "自動で作りたい書類は、何種類ありますか？",
+      "hint": "日報、施工写真台帳、クライアント提出用など。",
+      "options": [
+        {
+          "value": "s",
+          "label": "1〜2種類",
+          "days": 0
+        },
+        {
+          "value": "m",
+          "label": "3〜5種類",
+          "days": 0
+        },
+        {
+          "value": "l",
+          "label": "6種類以上",
+          "days": 0
+        }
+      ]
+    },
+    {
+      "id": "input",
+      "label": "元になる情報は、どうやって集めますか？",
+      "options": [
+        {
+          "value": "form",
+          "label": "スマホのフォームに入力",
+          "days": 0
+        },
+        {
+          "value": "photo",
+          "label": "写真を撮るだけにしたい",
+          "days": 0
+        },
+        {
+          "value": "system",
+          "label": "既存システムから取り込む",
+          "days": 0
+        }
+      ]
+    },
+    {
+      "id": "output",
+      "label": "出力したい形式は？",
+      "options": [
+        {
+          "value": "pdf",
+          "label": "PDF",
+          "days": 0
+        },
+        {
+          "value": "excel",
+          "label": "Excel（指定様式あり）",
+          "days": 0
+        },
+        {
+          "value": "both",
+          "label": "両方",
+          "days": 0
+        }
+      ]
+    },
+    {
+      "id": "approval",
+      "label": "承認・確認のフローは必要ですか？",
+      "hint": "上長が確認してから提出する運用なら「必要」です。",
+      "options": [
+        {
+          "value": "no",
+          "label": "不要",
+          "days": 0
+        },
+        {
+          "value": "yes",
+          "label": "必要",
+          "days": 0
+        }
+      ]
+    }
+  ]
+}

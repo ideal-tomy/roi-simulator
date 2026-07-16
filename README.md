@@ -20,9 +20,11 @@ npm run build   # dist/ に出力
 src/
 ├─ lib/calc.ts        ← ① エンジン層：試算ロジック（UI非依存・全業界共通）
 │                        仕様変更はここだけ。1箇所直せば全デモに即反映。
-├─ data/presets/*.json ← ② プリセット層：業界ごとの数字と文言
+├─ lib/estimate.ts    ← ② 見積もり層：質問回答から開発費・月額のレンジを概算
+├─ data/presets/*.json ← ③ プリセット層：業界ごとの数字と文言
 │                        新業界を足す＝JSONを1個置くだけ（自動で読み込まれる）
-├─ components/        ← ③ UI層
+├─ data/kits/*.json   ← ④ kit層：見積もり質問と係数（用途別に追加）
+├─ components/        ← ⑤ UI層
 └─ lib/url.ts            URL同期・共有リンク・埋め込みタグ生成
 ```
 
@@ -131,3 +133,101 @@ vercel --prod # 本番
 
 数字はすべて**想定モデル**。実データが取れたらプリセットの `defaults` を差し替える。
 フッターの但し書き（`note`）は業界JSONごとに設定可能。
+
+---
+
+# 概算見積もりエンジン（kit）
+
+`?kit=chatbot` を付けると、ROIシミュレーターの前に**質問→概算レンジ**のステップが出る。
+レンジの**上限**が自動的に「導入の初期費用／毎月の利用料」に入り、そのまま損益分岐グラフに繋がる。
+
+```
+デモ → iframe: /embed?kit=chatbot&industry=construction&from=demo-x
+                 ↓ iframeの中で完結（デモ側は何も渡さない・何も受け取らない）
+               ① 質問に答える
+               ② 概算レンジ表示（例：450〜560万円）
+               ③ 上限を初期費用に自動投入 → 回収グラフ
+```
+
+## ★ 最初にやること：人日の較正
+
+**現在すべての人日・単価は 0（未設定）です。** このままでは金額は表示されません
+（`calibrated=false` のガードが働き、`¥0` を客に見せる事故を防いでいます）。
+
+`src/data/kits/*.json` の以下を、**過去案件の実績**で埋める：
+
+| フィールド | 意味 | 埋め方 |
+|---|---|---|
+| `unitPrice` | 人日単価（円） | 自社の単価 |
+| `baseDays` | 土台の人日 | 質問に関係なく必ずかかる工数 |
+| `setupFee` | 初期セットアップ費（円） | 環境構築など固定費 |
+| `questions[].options[].days` | 人日の**加算** | その選択肢を選んだら何日増えるか |
+| `questions[].options[].factor` | 係数の**乗算** | 1.0 = 影響なし、1.2 = 2割増 |
+| `monthly.infra` / `monthly.usage` | インフラ／AI従量の月額（円） | 実績 |
+| `monthly.maintenanceRate` | 保守：開発費に対する年率 | 既定 0.12（＝年12%）※要確認 |
+| `rangeSpread` | 全問回答時にも残す誤差 | 既定 `{low:0.85, high:1.25}` |
+
+> 過去案件を3〜5件棚卸しして「あのLINE連携、実際は何日だったか」を入れるのが唯一の正解。
+> ここが実績でないと、出てくる見積もりは体裁のいい嘘になる。
+
+**下限（`devLow`）が赤字ラインを割らないか必ず確認すること。** 安く出る見積もりは自分の首を絞める。
+
+## レンジの計算
+
+```
+未回答の質問 → 最安の選択肢と最高の選択肢の両方で計算（＝レンジが広い）
+回答済みの質問 → その選択肢で確定（＝レンジが狭まる）
+
+人日Low  = (baseDays + Σ days_min) × Π factor_min
+人日High = (baseDays + Σ days_max) × Π factor_max
+開発費Low  = (人日Low  × unitPrice + setupFee) × rangeSpread.low
+開発費High = (人日High × unitPrice + setupFee) × rangeSpread.high
+月額 = infra + usage + (開発費 × maintenanceRate ÷ 12)
+```
+
+**答えるほど幅が狭まるのは演出ではなく、実際に不確実性が減っているから。**
+（ダミー人日での実測：0問回答 幅463万 → 5問回答 幅84万）
+
+ROIには常に**上限**が渡る。厳しい方の金額で回収が成立すれば、どう転んでも成立するため。
+
+## 新しいデモ用の質問セットを足す
+
+`src/data/kits/` に JSON を1個置くだけ（`chatbot.json` を複製して質問を差し替える）。
+
+```jsonc
+{
+  "id": "shift-management",        // ?kit=shift-management
+  "name": "シフト管理の自動化",
+  "summary": "希望を集めて、シフト案を自動で作る",
+  "unitPrice": 0, "setupFee": 0, "baseDays": 0,
+  "monthly": { "infra": 0, "usage": 0, "maintenanceRate": 0.12 },
+  "rangeSpread": { "low": 0.85, "high": 1.25 },
+  "questions": [
+    {
+      "id": "staff",
+      "label": "シフトに入る人は何人くらいですか？",
+      "hint": "任意の補足",
+      "options": [
+        { "value": "s", "label": "〜20人", "factor": 1 },
+        { "value": "l", "label": "21人以上", "factor": 1 }
+      ]
+    }
+  ]
+}
+```
+
+### 質問設計の鉄則
+
+- **金額が動かない質問は入れない。** 答えても数字が変わらない質問は、離脱を生むだけ
+- **3〜5問が上限。** それ以上は答えてもらえない
+- **`days`（加算）と `factor`（乗算）を使い分ける**
+  - 機能が増える＝`days`（ログイン機能、帳票の種類数）
+  - 全体が重くなる＝`factor`（利用人数、既存システム連携、デザイン作り込み）
+- **`factor` に 0 を入れない**（全部が消える）。影響なしは `1`
+
+## リード情報としての活用
+
+回答は `a_<質問id>` としてURLに載る（例：`?kit=chatbot&a_files=l&a_users=l&a_integration=many`）。
+問い合わせフォームにこのURLを引き継げば、**初回コンタクト前に規模感が分かる。**
+
+`?from=demo-xxx` を付けておくと、どのデモが問い合わせを生んでいるかを追える。
