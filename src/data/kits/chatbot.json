@@ -2,13 +2,13 @@
   "id": "chatbot",
   "name": "社内ナレッジチャットボット",
   "summary": "社内文書を検索して、根拠つきで答えるチャットボット",
-  "unitPrice": 0,
-  "setupFee": 0,
-  "baseDays": 0,
+  "unitPrice": 50000,
+  "setupFee": 1200000,
+  "baseDays": 6,
   "monthly": {
-    "infra": 0,
-    "usage": 0,
-    "maintenanceRate": 0.12
+    "infra": 20000,
+    "usage": 30000,
+    "maintenanceRate": 0.1
   },
   "rangeSpread": {
     "low": 0.85,
@@ -16,46 +16,24 @@
   },
   "questions": [
     {
-      "id": "files",
-      "label": "読み込ませたい資料は、どれくらいありますか？",
-      "hint": "マニュアル、仕様書、議事録など。おおよそで構いません。",
+      "id": "customize",
+      "label": "デモの画面は、どこまで作り変えますか？",
+      "hint": "値引きではなくメニューです。デモのまま使えるほど、工程が本当に消えます。",
       "options": [
         {
-          "value": "s",
-          "label": "〜50ファイル",
-          "days": 0
+          "value": "keep",
+          "label": "このまま使う（ロゴと色だけ変更）",
+          "days": 1
         },
         {
-          "value": "m",
-          "label": "51〜500ファイル",
-          "days": 0
+          "value": "partial",
+          "label": "一部の画面を作り変える",
+          "days": 10
         },
         {
-          "value": "l",
-          "label": "500ファイル以上",
-          "days": 0
-        }
-      ]
-    },
-    {
-      "id": "format",
-      "label": "その資料は、どんな形式ですか？",
-      "hint": "紙やスキャンPDFが混ざると、読み取りの手間が増えます。",
-      "options": [
-        {
-          "value": "digital",
-          "label": "WordやExcel（文字が選択できる）",
-          "days": 0
-        },
-        {
-          "value": "mixed",
-          "label": "PDFが中心",
-          "days": 0
-        },
-        {
-          "value": "scan",
-          "label": "紙・スキャン画像が多い",
-          "days": 0
+          "value": "full",
+          "label": "ゼロから設計し直す",
+          "days": 28
         }
       ]
     },
@@ -71,18 +49,40 @@
         {
           "value": "m",
           "label": "31〜100人",
-          "factor": 1
+          "factor": 1.1
         },
         {
           "value": "l",
           "label": "101人以上",
+          "factor": 1.25
+        }
+      ]
+    },
+    {
+      "id": "deadline",
+      "label": "いつまでに必要ですか？",
+      "hint": "短いほど体制とリスクが増えます。急ぎは堂々と高くして大丈夫な項目です。",
+      "options": [
+        {
+          "value": "relaxed",
+          "label": "3ヶ月以上ある",
           "factor": 1
+        },
+        {
+          "value": "standard",
+          "label": "1〜3ヶ月",
+          "factor": 1.15
+        },
+        {
+          "value": "rush",
+          "label": "1ヶ月以内",
+          "factor": 1.4
         }
       ]
     },
     {
       "id": "login",
-      "label": "ログイン機能は必要ですか？",
+      "label": "ログイン・権限は必要ですか？",
       "hint": "部署ごとに見せる資料を分けたい場合は「必要」です。",
       "options": [
         {
@@ -93,29 +93,171 @@
         {
           "value": "yes",
           "label": "必要（人ごとに権限を分ける）",
+          "days": 4
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "label": "情報システム部門の審査はありますか？",
+      "hint": "未回答のあいだは「ある」前提で見積もります。無いと分かれば安くなります。",
+      "optional": true,
+      "unansweredMode": "high",
+      "options": [
+        {
+          "value": "no",
+          "label": "ない（または不要）",
           "days": 0
+        },
+        {
+          "value": "yes",
+          "label": "ある（セキュリティチェックがある）",
+          "days": 8
+        }
+      ]
+    },
+    {
+      "id": "legacy_data",
+      "label": "過去のデータを取り込みますか？",
+      "hint": "未回答のあいだは「取り込む」前提です。既存Excelの掃除は工数が跳ねやすいです。",
+      "optional": true,
+      "unansweredMode": "high",
+      "options": [
+        {
+          "value": "no",
+          "label": "新しく始める（取り込みなし）",
+          "days": 0
+        },
+        {
+          "value": "yes",
+          "label": "過去データも持ち込む",
+          "days": 6
         }
       ]
     },
     {
       "id": "integration",
-      "label": "いま使っているシステムとつなぎますか？",
-      "hint": "kintone、サイボウズ、基幹システムなど。",
+      "label": "既存システムとは、どうつなげますか？",
+      "hint": "APIがあるか、CSV受け渡しかで工数が大きく変わります。",
+      "optional": true,
+      "unansweredMode": "range",
       "options": [
         {
           "value": "none",
           "label": "つながなくてよい",
-          "factor": 1
+          "days": 0
         },
         {
-          "value": "one",
-          "label": "1つとつなぐ",
-          "factor": 1
+          "value": "api",
+          "label": "APIがある",
+          "days": 3
         },
         {
-          "value": "many",
-          "label": "複数とつなぐ",
-          "factor": 1
+          "value": "csv",
+          "label": "CSVなどで受け渡す",
+          "days": 5
+        },
+        {
+          "value": "unknown",
+          "label": "わからない／要調査",
+          "days": 10
+        }
+      ]
+    },
+    {
+      "id": "mobile",
+      "label": "現場のスマホから使いますか？",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        {
+          "value": "desk",
+          "label": "PCが中心でよい",
+          "days": 0
+        },
+        {
+          "value": "responsive",
+          "label": "スマホでも見られればよい",
+          "days": 2
+        },
+        {
+          "value": "field",
+          "label": "現場で本格利用したい",
+          "days": 8
+        }
+      ]
+    },
+    {
+      "id": "excel_lock",
+      "label": "いまのExcel様式は変えられますか？",
+      "hint": "「この様式そのままで」は再現コストが乗りやすいです。",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        {
+          "value": "flexible",
+          "label": "変えられる",
+          "days": 0
+        },
+        {
+          "value": "fixed",
+          "label": "この様式のままが必要",
+          "days": 8
+        }
+      ]
+    },
+    {
+      "id": "tone",
+      "label": "AIの答え方は、調整が必要ですか？",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        {
+          "value": "default",
+          "label": "デモの調子でよい",
+          "days": 0
+        },
+        {
+          "value": "tune",
+          "label": "言い回しや禁止事項を合わせたい",
+          "days": 3
+        }
+      ]
+    },
+    {
+      "id": "sla",
+      "label": "障害時、いつ対応が必要ですか？",
+      "hint": "月額の保守原価に直結します。",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        {
+          "value": "business",
+          "label": "平日の日中でよい",
+          "monthlyAdd": 0
+        },
+        {
+          "value": "247",
+          "label": "夜間・休日も含めたい",
+          "monthlyAdd": 80000
+        }
+      ]
+    },
+    {
+      "id": "knowledge_ops",
+      "label": "ナレッジの更新は誰がやりますか？",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        {
+          "value": "customer",
+          "label": "お客さま側で更新する",
+          "monthlyAdd": 0
+        },
+        {
+          "value": "vendor",
+          "label": "こちらで運用サポートする",
+          "monthlyAdd": 40000
         }
       ]
     }

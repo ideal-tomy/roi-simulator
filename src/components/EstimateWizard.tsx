@@ -1,5 +1,6 @@
+import { useMemo, useState } from 'react';
 import { fmtMan } from '../lib/calc';
-import type { Kit, Answers, Estimate } from '../lib/estimate';
+import type { Kit, KitQuestion, Answers, Estimate } from '../lib/estimate';
 
 type Props = {
   kit: Kit;
@@ -9,9 +10,48 @@ type Props = {
   onReset: () => void;
 };
 
+function QuestionBlock({
+  q,
+  answers,
+  onAnswer,
+}: {
+  q: KitQuestion;
+  answers: Answers;
+  onAnswer: (qid: string, value: string) => void;
+}) {
+  return (
+    <div className="est-q">
+      <div className="est-ql">{q.label}</div>
+      {q.hint && <div className="est-qh">{q.hint}</div>}
+      {q.unansweredMode === 'high' && answers[q.id] == null && (
+        <div className="est-qnote">未回答のため「重い方」で計算中</div>
+      )}
+      <div className="est-opts">
+        {q.options.map((o) => (
+          <button
+            key={o.value}
+            className="est-opt"
+            aria-pressed={answers[q.id] === o.value}
+            onClick={() => onAnswer(q.id, o.value)}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function EstimateWizard({ kit, answers, est, onAnswer, onReset }: Props) {
-  const pct = Math.round((est.answered / est.total) * 100);
-  const done = est.answered === est.total;
+  const basicQs = useMemo(() => kit.questions.filter((q) => !q.optional), [kit.questions]);
+  const optionalQs = useMemo(() => kit.questions.filter((q) => q.optional), [kit.questions]);
+  const optionalAnswered = optionalQs.filter((q) => answers[q.id] != null).length;
+  const [detailsOpen, setDetailsOpen] = useState(optionalAnswered > 0);
+
+  const basicDone = est.basicTotal > 0 && est.basicAnswered === est.basicTotal;
+  const pct = est.basicTotal
+    ? Math.round((est.basicAnswered / est.basicTotal) * 100)
+    : Math.round((est.answered / est.total) * 100);
 
   return (
     <section className="est">
@@ -20,7 +60,10 @@ export function EstimateWizard({ kit, answers, est, onAnswer, onReset }: Props) 
           <div>
             <div className="eyebrow">かんたん概算見積もり｜{kit.name}</div>
             <h2 className="est-title">まず、いくらで作れるかを出します。</h2>
-            <p className="est-lead">{kit.summary}。下の質問に答えるほど、金額の幅が狭まります。</p>
+            <p className="est-lead">
+              {kit.summary}。基本の質問に答えるほど幅が決まります。
+              より正確にしたいときだけ、追加の質問を開いてください。
+            </p>
           </div>
           {est.answered > 0 && (
             <button className="est-reset" onClick={onReset}>回答をクリア</button>
@@ -38,24 +81,39 @@ export function EstimateWizard({ kit, answers, est, onAnswer, onReset }: Props) 
 
         <div className="est-grid">
           <div className="est-qs">
-            {kit.questions.map((q) => (
-              <div className="est-q" key={q.id}>
-                <div className="est-ql">{q.label}</div>
-                {q.hint && <div className="est-qh">{q.hint}</div>}
-                <div className="est-opts">
-                  {q.options.map((o) => (
-                    <button
-                      key={o.value}
-                      className="est-opt"
-                      aria-pressed={answers[q.id] === o.value}
-                      onClick={() => onAnswer(q.id, o.value)}
-                    >
-                      {o.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+            {basicQs.map((q) => (
+              <QuestionBlock key={q.id} q={q} answers={answers} onAnswer={onAnswer} />
             ))}
+
+            {optionalQs.length > 0 && (
+              <div className="est-details">
+                <button
+                  type="button"
+                  className="est-details-toggle"
+                  aria-expanded={detailsOpen}
+                  onClick={() => setDetailsOpen((v) => !v)}
+                >
+                  <span>
+                    より正確な数値を算出したい場合は、質問への回答を追加
+                    {optionalAnswered > 0 && (
+                      <small>（{optionalQs.length}問中 {optionalAnswered}問回答済み）</small>
+                    )}
+                  </span>
+                  <span className="est-details-chevron" aria-hidden>{detailsOpen ? '−' : '+'}</span>
+                </button>
+                {detailsOpen && (
+                  <div className="est-details-body">
+                    <p className="est-details-lead">
+                      審査やデータ取り込みなど、見落としやすい項目です。
+                      未回答の項目は、安い側に倒さず安全側で計算します。
+                    </p>
+                    {optionalQs.map((q) => (
+                      <QuestionBlock key={q.id} q={q} answers={answers} onAnswer={onAnswer} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="est-result">
@@ -74,9 +132,11 @@ export function EstimateWizard({ kit, answers, est, onAnswer, onReset }: Props) 
               <div className="est-prog">
                 <div className="est-bar"><span style={{ width: `${pct}%` }} /></div>
                 <div className="est-progtxt">
-                  {done
-                    ? '全問回答済み。これ以上は要件を伺って精度を上げます。'
-                    : `${est.total}問中 ${est.answered}問に回答。答えるほど幅が狭まります。`}
+                  {basicDone
+                    ? optionalAnswered === optionalQs.length && optionalQs.length > 0
+                      ? '基本＋追加の回答済み。これ以上は要件を伺って精度を上げます。'
+                      : '基本は回答済み。追加回答でさらに精度を上げられます。'
+                    : `基本 ${est.basicTotal}問中 ${est.basicAnswered}問に回答。`}
                 </div>
               </div>
 
@@ -88,7 +148,8 @@ export function EstimateWizard({ kit, answers, est, onAnswer, onReset }: Props) 
               )}
 
               <div className="est-caution">
-                この金額はあくまで<b>概算</b>です。正式なお見積もりは、要件を伺ったうえでご提示します。
+                この金額はあくまで<b>概算</b>です。デモを流用できる範囲は工程が消えるため安く、
+                フルカスタムはスコープが大きいため高くなります。値引きではなくメニューです。
               </div>
             </div>
 

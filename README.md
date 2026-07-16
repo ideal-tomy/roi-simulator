@@ -158,13 +158,16 @@ vercel --prod # 本番
 
 | フィールド | 意味 | 埋め方 |
 |---|---|---|
-| `unitPrice` | 人日単価（円） | 自社の単価 |
-| `baseDays` | 土台の人日 | 質問に関係なく必ずかかる工数 |
-| `setupFee` | 初期セットアップ費（円） | 環境構築など固定費 |
+| `unitPrice` | 人日単価（円） | 20年エンジニア単価＋マージン |
+| `baseDays` | デモ流用でも残る最低人日 | 接続・設定・納品など |
+| `setupFee` | **土台利用料**（再利用資産の対価） | デモ資産の対価。環境構築費ではない |
 | `questions[].options[].days` | 人日の**加算** | その選択肢を選んだら何日増えるか |
 | `questions[].options[].factor` | 係数の**乗算** | 1.0 = 影響なし、1.2 = 2割増 |
+| `questions[].options[].monthlyAdd` | 月額の**加算**（円） | SLA・運用サポートなど |
+| `questions[].optional` | UI で追加回答枠に入れる | `true` なら基本4問の外 |
+| `questions[].unansweredMode` | 未回答時の扱い | `range`（幅を広げる）/ `high`（重い方固定） |
 | `monthly.infra` / `monthly.usage` | インフラ／AI従量の月額（円） | 実績 |
-| `monthly.maintenanceRate` | 保守：開発費に対する年率 | 既定 0.12（＝年12%）※要確認 |
+| `monthly.maintenanceRate` | 保守：開発費に対する年率 | 外注原価に合わせて調整 |
 | `rangeSpread` | 全問回答時にも残す誤差 | 既定 `{low:0.85, high:1.25}` |
 
 > 過去案件を3〜5件棚卸しして「あのLINE連携、実際は何日だったか」を入れるのが唯一の正解。
@@ -175,18 +178,19 @@ vercel --prod # 本番
 ## レンジの計算
 
 ```
-未回答の質問 → 最安の選択肢と最高の選択肢の両方で計算（＝レンジが広い）
-回答済みの質問 → その選択肢で確定（＝レンジが狭まる）
+回答済み → その選択肢で確定
+未回答 + unansweredMode "range" → 最安／最高の両端（幅が広がる）
+未回答 + unansweredMode "high"  → 重い方を両端に固定（安い見積事故を防ぐ）
 
-人日Low  = (baseDays + Σ days_min) × Π factor_min
-人日High = (baseDays + Σ days_max) × Π factor_max
+人日Low  = (baseDays + Σ days_low) × Π factor_low
+人日High = (baseDays + Σ days_high) × Π factor_high
 開発費Low  = (人日Low  × unitPrice + setupFee) × rangeSpread.low
 開発費High = (人日High × unitPrice + setupFee) × rangeSpread.high
-月額 = infra + usage + (開発費 × maintenanceRate ÷ 12)
+月額 = infra + usage + Σ monthlyAdd + (開発費 × maintenanceRate ÷ 12)
 ```
 
 **答えるほど幅が狭まるのは演出ではなく、実際に不確実性が減っているから。**
-（ダミー人日での実測：0問回答 幅463万 → 5問回答 幅84万）
+情シス審査・データ取り込みなど `unansweredMode: "high"` の項目は、未回答のあいだ安い側に倒れません。
 
 ROIには常に**上限**が渡る。厳しい方の金額で回収が成立すれば、どう転んでも成立するため。
 
