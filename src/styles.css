@@ -30,9 +30,13 @@ header.bar .wrap{
 .brand{font-weight:900;font-size:18px;display:flex;align-items:center;gap:10px;flex:0 0 auto}
 .brand .dot{width:10px;height:10px;border-radius:3px;background:var(--blue)}
 .brand-logo{height:22px;width:auto;display:block}
-/* brand=ideal の軽い差分（ロゴ未配置時の区別） */
-body[data-brand="ideal"] .brand .dot{background:#0D9488}
-body[data-brand="ideal"]{--blue:#0D9488;--tint:#E6F7F5}
+/* brand=ideal：アクセントをブランドカラーに（他ブランドは :root のまま） */
+body[data-brand="ideal"]{
+  --navy:#6B1C26;
+  --navy2:#7A222C;
+  --blue:#9B2937;
+  --tint:#F7E8EA;
+}
 .bar .tag{
   font-size:12px;font-weight:700;border:1px solid rgba(255,255,255,.35);
   padding:5px 12px;border-radius:999px;flex:1 1 auto;min-width:0;
