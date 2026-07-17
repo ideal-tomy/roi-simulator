@@ -1,3 +1,7 @@
+import type { EstimateContext } from './context';
+import { contextFactors } from './context';
+import type { KitRoiProfile } from './roiProfile';
+
 /* =========================================================================
    見積もりエンジン：質問への回答 → 開発費レンジ（UI非依存）
    ・未回答の質問:
@@ -5,6 +9,7 @@
        unansweredMode "high"         → 重い方を両端に固定（安い見積事故を防ぐ）
    ・optional: true の質問は UI で任意表示（エンジンは全問を計算に使う）
    ・人日・単価が未設定（0）のうちは calibrated=false を返し、金額を出させない
+   ・共通コンテキスト（規模・環境）は最終金額に係数として掛ける
    ========================================================================= */
 
 export type KitOption = {
@@ -44,6 +49,8 @@ export type Kit = {
   };
   rangeSpread: { low: number; high: number }; // 全問回答時でも残る見積もり誤差
   questions: KitQuestion[];
+  /** かんたん入力（ROI）のラベル・初期値。無い場合は業種カテゴリにフォールバック */
+  roi?: KitRoiProfile;
 };
 
 export type Answers = Record<string, string>;
@@ -72,7 +79,11 @@ function optionMonthly(o: KitOption) {
   return o.monthlyAdd ?? 0;
 }
 
-export function estimate(kit: Kit, answers: Answers): Estimate {
+export function estimate(
+  kit: Kit,
+  answers: Answers,
+  ctx: EstimateContext = { size: null, environment: null },
+): Estimate {
   // 単価・土台人日が未設定なら金額を出さない（¥0を客に見せる事故を防ぐ）
   const calibrated = kit.unitPrice > 0 && kit.baseDays > 0;
 
@@ -136,8 +147,9 @@ export function estimate(kit: Kit, answers: Answers): Estimate {
   const rawLow = totalDaysLow * kit.unitPrice + kit.setupFee;
   const rawHigh = totalDaysHigh * kit.unitPrice + kit.setupFee;
 
-  const devLow = rawLow * kit.rangeSpread.low;
-  const devHigh = rawHigh * kit.rangeSpread.high;
+  const cf = contextFactors(ctx);
+  const devLow = rawLow * kit.rangeSpread.low * cf.low;
+  const devHigh = rawHigh * kit.rangeSpread.high * cf.high;
 
   const monthlyOf = (dev: number, monthlyAdd: number) =>
     kit.monthly.infra +

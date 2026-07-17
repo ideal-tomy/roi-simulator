@@ -4,9 +4,18 @@ import { PRESETS, getPreset, type CategoryKey } from './lib/presets';
 import { estimate, type Answers } from './lib/estimate';
 import { KITS, defaultKitId, getKit } from './lib/kits';
 import { readUrl, writeUrl, shareUrl, embedSnippet } from './lib/url';
+import {
+  SIZE_OPTIONS,
+  ENV_OPTIONS,
+  contextNotes,
+  type CompanySize,
+  type Environment,
+} from './lib/context';
+import { getRoiCopy } from './lib/roiProfile';
 import { Slider, Money } from './components/Fields';
 import { BreakEvenChart } from './components/BreakEvenChart';
 import { EstimateWizard } from './components/EstimateWizard';
+import { EstimateFloat } from './components/EstimateFloat';
 
 /** **強調** を <b> に変換する軽量マークアップ */
 function Rich({ text }: { text: string }) {
@@ -30,6 +39,13 @@ export default function App() {
   const [answers, setAnswers] = useState<Answers>(url.answers);
   const [kitId, setKitId] = useState<string | null>(url.kit);
   const kit = useMemo(() => getKit(kitId), [kitId]);
+  const [companySize, setCompanySize] = useState<CompanySize | null>(url.size);
+  const [environment, setEnvironment] = useState<Environment | null>(url.environment);
+  const estimateCtx = useMemo(
+    () => ({ size: companySize, environment }),
+    [companySize, environment],
+  );
+  const ctxNotes = useMemo(() => contextNotes(estimateCtx), [estimateCtx]);
 
   // 見積もりから初期費用を自動投入するか（ユーザーが手で触ったら止める）
   const [manualCost, setManualCost] = useState(
@@ -38,13 +54,21 @@ export default function App() {
 
   const [copied, setCopied] = useState<string | null>(null);
   const [scrollToEstimate, setScrollToEstimate] = useState(false);
+  const [estInView, setEstInView] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 761px)').matches : true,
+  );
   const bodyRef = useRef<HTMLDivElement>(null);
   const estimateRef = useRef<HTMLDivElement>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const kitPickerRef = useRef<HTMLDivElement>(null);
 
   const est = useMemo(
-    () => (kit ? estimate(kit, answers) : null),
-    [kit, answers],
+    () => (kit ? estimate(kit, answers, estimateCtx) : null),
+    [kit, answers, estimateCtx],
   );
+
+  const roiCopy = useMemo(() => getRoiCopy(kit, category), [kit, category]);
 
   const openEstimate = (id?: string | null) => {
     const next = id ?? kitId ?? defaultKitId();
@@ -56,13 +80,61 @@ export default function App() {
   const closeEstimate = () => {
     setKitId(null);
     setAnswers({});
+    setInputs((s) => ({
+      ...category.defaults,
+      ...(manualCost ? { initial: s.initial, monthly: s.monthly } : {}),
+    }));
   };
 
   useEffect(() => {
     if (!scrollToEstimate || !kit) return;
-    estimateRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    estimateRef.current?.scrollIntoView({
+      behavior: reduced ? 'auto' : 'smooth',
+      block: 'start',
+    });
     setScrollToEstimate(false);
   }, [scrollToEstimate, kit]);
+
+  // kit 切替時: ROI 効果側の defaults を適用（initial/monthly は維持 → 見積連動 effect が担当）
+  useEffect(() => {
+    if (!kit?.roi) return;
+    const d = kit.roi.defaults;
+    setInputs((s) => ({
+      ...s,
+      people: d.people,
+      cases: d.cases,
+      minutes: d.minutes,
+      reduction: d.reduction,
+      wage: d.wage,
+      other: d.other,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kitId]);
+
+  // PC幅判定（フロート表示用）
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 761px)');
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  // 見積ブロックが見えているか（画面外なら PC フロート）
+  useEffect(() => {
+    const el = estimateRef.current;
+    if (!el || !kit) {
+      setEstInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setEstInView(entry.isIntersecting),
+      { threshold: 0, rootMargin: '-48px 0px 0px 0px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [kit]);
 
   // 概算の「上限」を開発費用として自動投入（厳しい方で回収が成立するかを見る）
   useEffect(() => {
@@ -88,17 +160,35 @@ export default function App() {
     const c = p.categories.find((x) => x.key === catKey) ?? p.categories[0];
     setIndustryId(id);
     setCatKey(c.key);
+    // kit オープン中は ROI ラベル用 defaults を優先
+    const effect = kit?.roi?.defaults ?? {
+      people: c.defaults.people,
+      cases: c.defaults.cases,
+      minutes: c.defaults.minutes,
+      reduction: c.defaults.reduction,
+      wage: c.defaults.wage,
+      other: c.defaults.other,
+    };
     setInputs((s) => ({
       ...c.defaults,
-      // 見積もり連動中は費用側を維持する
+      ...effect,
       ...(manualCost || !est?.calibrated ? {} : { initial: s.initial, monthly: s.monthly }),
     }));
   };
   const switchCategory = (k: CategoryKey) => {
     const c = preset.categories.find((x) => x.key === k)!;
     setCatKey(k);
+    const effect = kit?.roi?.defaults ?? {
+      people: c.defaults.people,
+      cases: c.defaults.cases,
+      minutes: c.defaults.minutes,
+      reduction: c.defaults.reduction,
+      wage: c.defaults.wage,
+      other: c.defaults.other,
+    };
     setInputs((s) => ({
       ...c.defaults,
+      ...effect,
       ...(manualCost || !est?.calibrated ? {} : { initial: s.initial, monthly: s.monthly }),
     }));
   };
@@ -110,11 +200,13 @@ export default function App() {
     kit: kitId,
     answers,
     from: url.from,
+    size: companySize,
+    environment,
   };
 
   useEffect(() => {
     writeUrl({ ...urlArgs, embed: url.embed });
-  }, [industryId, catKey, inputs, answers, url.embed, kitId, url.from]);
+  }, [industryId, catKey, inputs, answers, url.embed, kitId, url.from, companySize, environment]);
 
   // 埋め込み時：親フレームに高さを通知
   useEffect(() => {
@@ -143,6 +235,15 @@ export default function App() {
   };
 
   const autoFilled = !!est?.calibrated && !manualCost;
+  const showFloat = !!kit && !!est?.calibrated && isDesktop && !estInView;
+
+  const scrollToEstimateBlock = () => {
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    estimateRef.current?.scrollIntoView({
+      behavior: reduced ? 'auto' : 'smooth',
+      block: 'start',
+    });
+  };
 
   return (
     <div ref={bodyRef}>
@@ -151,22 +252,20 @@ export default function App() {
           <header className="bar">
             <div className="wrap">
               <div className="brand"><span className="dot" />AXEON</div>
-              <div className="bar-right">
-                <div className="tag">{preset.tag}</div>
-                {KITS.length > 0 && (
-                  <button
-                    type="button"
-                    className="bar-est-btn"
-                    aria-pressed={!!kit}
-                    onClick={() => (kit ? closeEstimate() : openEstimate())}
-                  >
-                    {kit ? '見積もりを閉じる' : '概算見積もりを開く'}
-                  </button>
-                )}
-              </div>
+              <div className="tag" title={preset.tag}>{preset.tag}</div>
+              {KITS.length > 0 && (
+                <button
+                  type="button"
+                  className="bar-est-btn"
+                  aria-pressed={!!kit}
+                  onClick={() => (kit ? closeEstimate() : openEstimate())}
+                >
+                  {kit ? '見積もりを閉じる' : '概算見積もりを開く'}
+                </button>
+              )}
             </div>
           </header>
-          <div className="picker">
+          <div className="picker" ref={pickerRef}>
             <div className="wrap">
               <span className="lb">業界を選ぶ</span>
               {PRESETS.map((p) => (
@@ -181,12 +280,26 @@ export default function App() {
       )}
 
       {url.embed && !kit && KITS.length > 0 && (
-        <div className="est-launch embed-launch">
+        <div className="est-launch embed-launch kit-hub">
           <div className="wrap">
-            <button type="button" className="est-launch-btn" onClick={() => openEstimate()}>
-              概算見積もりを開く
-            </button>
-            <span className="est-launch-hint">質問に答えると、開発費の目安が分かります</span>
+            <div className="kit-hub-head">
+              <div className="eyebrow">概算見積もり</div>
+              <h2 className="kit-hub-title">作りたいものを選んでください</h2>
+              <p className="kit-hub-lead">質問に答えると、開発費の目安がその場で分かります。</p>
+            </div>
+            <div className="kit-hub-grid">
+              {KITS.map((k) => (
+                <button
+                  key={k.id}
+                  type="button"
+                  className="kit-hub-card"
+                  onClick={() => openEstimate(k.id)}
+                >
+                  <span className="kit-hub-name">{k.name}</span>
+                  <span className="kit-hub-summary">{k.summary}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -194,7 +307,7 @@ export default function App() {
       <div ref={estimateRef}>
         {kit && est && (
           <>
-            <div className="kit-picker">
+            <div className="kit-picker hint-pulse hint-pulse-kit" ref={kitPickerRef}>
               <div className="wrap">
                 <span className="lb">見積もる内容</span>
                 {KITS.map((k) => (
@@ -215,16 +328,69 @@ export default function App() {
                 </button>
               </div>
             </div>
+            {/* 共通コンテキスト: 本体では常時。embed は URL 指定時のみ反映（UIは最短のため非表示） */}
+            {!url.embed && (
+              <div className="ctx-picker">
+                <div className="wrap">
+                  <div className={`ctx-row${!companySize ? ' hint-pulse hint-pulse-0' : ''}`}>
+                    <span className="lb">会社規模</span>
+                    {SIZE_OPTIONS.map((o) => (
+                      <button
+                        key={o.value}
+                        type="button"
+                        aria-pressed={companySize === o.value}
+                        onClick={() =>
+                          setCompanySize((cur) => (cur === o.value ? null : o.value))
+                        }
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={`ctx-row${!environment ? ' hint-pulse hint-pulse-1' : ''}`}>
+                    <span className="lb">使用環境</span>
+                    {ENV_OPTIONS.map((o) => (
+                      <button
+                        key={o.value}
+                        type="button"
+                        aria-pressed={environment === o.value}
+                        onClick={() =>
+                          setEnvironment((cur) => (cur === o.value ? null : o.value))
+                        }
+                      >
+                        {o.label}
+                      </button>
+                    ))}
+                  </div>
+                  {ctxNotes.length > 0 && (
+                    <div className="ctx-notes">
+                      {ctxNotes.map((n) => (
+                        <span key={n}>{n}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             <EstimateWizard
               kit={kit}
               answers={answers}
               est={est}
+              industryName={preset.name}
+              contextNotes={url.embed ? ctxNotes : []}
+              contextInteractive
+              onScrollToPickers={() => {
+                const target = url.embed ? kitPickerRef.current : pickerRef.current;
+                (target ?? kitPickerRef.current)?.scrollIntoView({
+                  behavior: 'smooth',
+                  block: 'start',
+                });
+              }}
               onAnswer={(qid, value) =>
                 setAnswers((a) => ({ ...a, [qid]: a[qid] === value ? '' : value }))
               }
               onReset={() => setAnswers({})}
-            />
-          </>
+            />          </>
         )}
       </div>
 
@@ -263,20 +429,20 @@ export default function App() {
             <div className="panel">
               <div className="ph"><span className="num">1</span><h2>かんたん入力</h2></div>
               <div className="pb">
-                <Slider label="この作業をする人は何人？" value={inputs.people} unit="人"
+                <Slider label={roiCopy.peopleLabel} value={inputs.people} unit="人"
                         min={1} max={300} onChange={set('people')} />
-                <Slider label="1人が1ヶ月に何件こなす？" value={inputs.cases} unit="件"
+                <Slider label={roiCopy.casesLabel} value={inputs.cases} unit="件"
                         min={1} max={200} onChange={set('cases')} />
-                <Slider label="1件にだいたい何分かかる？" value={inputs.minutes} unit="分"
+                <Slider label={roiCopy.minutesLabel} value={inputs.minutes} unit="分"
                         min={1} max={240} onChange={set('minutes')} />
-                <Slider label="導入でどれくらい速くなる？" value={inputs.reduction} unit="%"
+                <Slider label={roiCopy.reductionLabel} value={inputs.reduction} unit="%"
                         min={10} max={99} onChange={set('reduction')}
-                        hint="「探す・書く」時間がどれだけ消えるか。迷ったら70〜80%でOK。" />
+                        hint={roiCopy.reductionHint} />
                 <Money label="1時間あたりの人件費" value={inputs.wage} suffix="円/時" step={100}
                        hint="月給÷160時間の目安。一般職なら2,000〜3,500円。"
                        onChange={set('wage')} />
-                <Money label={category.otherLabel} value={inputs.other} suffix="円/年"
-                       hint={category.otherHint} onChange={set('other')} />
+                <Money label={roiCopy.otherLabel} value={inputs.other} suffix="円/年"
+                       hint={roiCopy.otherHint} onChange={set('other')} />
 
                 {autoFilled && (
                   <div className="autobadge">
@@ -382,6 +548,14 @@ export default function App() {
       <div className="note">
         <div className={url.embed ? 'wrap embed-note' : 'wrap'}>{preset.note}</div>
       </div>
+
+      {est && (
+        <EstimateFloat
+          visible={showFloat}
+          est={est}
+          onShow={scrollToEstimateBlock}
+        />
+      )}
     </div>
   );
 }

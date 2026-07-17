@@ -2,81 +2,62 @@
   "id": "report-auto",
   "name": "報告書・帳票の自動作成",
   "summary": "現場の入力から、提出用の報告書を自動で組み立てる",
-  "unitPrice": 0,
-  "setupFee": 0,
-  "baseDays": 0,
+  "unitPrice": 50000,
+  "setupFee": 1000000,
+  "baseDays": 8,
   "monthly": {
-    "infra": 0,
-    "usage": 0,
-    "maintenanceRate": 0.12
+    "infra": 15000,
+    "usage": 10000,
+    "maintenanceRate": 0.1
   },
   "rangeSpread": {
     "low": 0.85,
     "high": 1.25
   },
+  "roi": {
+    "peopleLabel": "報告書を作る人は何人？",
+    "casesLabel": "1人が1ヶ月に何件こなす？",
+    "minutesLabel": "1件にだいたい何分かかる？",
+    "reductionLabel": "導入でどれくらい速くなる？",
+    "reductionHint": "探す・書く・体裁を整える時間がどれだけ消えるか。迷ったら70〜80%でOK。",
+    "otherLabel": "撮り直し・差し戻し・記録漏れの回避（年間）",
+    "otherHint": "報告のやり直しや「あの写真どこ？」を減らした効果。0でも構いません。",
+    "defaults": {
+      "people": 80,
+      "cases": 20,
+      "minutes": 25,
+      "reduction": 75,
+      "wage": 3500,
+      "other": 3000000
+    }
+  },
   "questions": [
     {
       "id": "types",
       "label": "自動で作りたい書類は、何種類ありますか？",
-      "hint": "日報、施工写真台帳、クライアント提出用など。",
+      "hint": "日報、施工写真台帳、クライアント提出用など。種類が増えるほどテンプレ設計が増えます。",
       "options": [
-        {
-          "value": "s",
-          "label": "1〜2種類",
-          "days": 0
-        },
-        {
-          "value": "m",
-          "label": "3〜5種類",
-          "days": 0
-        },
-        {
-          "value": "l",
-          "label": "6種類以上",
-          "days": 0
-        }
+        { "value": "s", "label": "1〜2種類", "days": 2 },
+        { "value": "m", "label": "3〜5種類", "days": 8 },
+        { "value": "l", "label": "6種類以上", "days": 16 }
       ]
     },
     {
       "id": "input",
       "label": "元になる情報は、どうやって集めますか？",
       "options": [
-        {
-          "value": "form",
-          "label": "スマホのフォームに入力",
-          "days": 0
-        },
-        {
-          "value": "photo",
-          "label": "写真を撮るだけにしたい",
-          "days": 0
-        },
-        {
-          "value": "system",
-          "label": "既存システムから取り込む",
-          "days": 0
-        }
+        { "value": "form", "label": "スマホのフォームに入力", "days": 2 },
+        { "value": "photo", "label": "写真を撮るだけにしたい", "days": 6 },
+        { "value": "system", "label": "既存システムから取り込む", "days": 12 }
       ]
     },
     {
       "id": "output",
       "label": "出力したい形式は？",
       "options": [
-        {
-          "value": "pdf",
-          "label": "PDF",
-          "days": 0
-        },
-        {
-          "value": "excel",
-          "label": "Excel（指定様式あり）",
-          "days": 0
-        },
-        {
-          "value": "both",
-          "label": "両方",
-          "days": 0
-        }
+        { "value": "pdf", "label": "PDF", "days": 1 },
+        { "value": "excel", "label": "Excel（指定様式あり）", "days": 6 },
+        { "value": "both", "label": "両方", "days": 8 }
       ]
     },
     {
@@ -84,16 +65,41 @@
       "label": "承認・確認のフローは必要ですか？",
       "hint": "上長が確認してから提出する運用なら「必要」です。",
       "options": [
-        {
-          "value": "no",
-          "label": "不要",
-          "days": 0
-        },
-        {
-          "value": "yes",
-          "label": "必要",
-          "days": 0
-        }
+        { "value": "no", "label": "不要", "days": 0 },
+        { "value": "yes", "label": "必要", "days": 5 }
+      ]
+    },
+    {
+      "id": "customize",
+      "label": "画面や帳票の見た目は、どこまで合わせますか？",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        { "value": "keep", "label": "標準のままでよい", "days": 0 },
+        { "value": "partial", "label": "一部を会社の様式に合わせる", "days": 6 },
+        { "value": "full", "label": "既存様式に厳密に合わせる", "days": 14 }
+      ]
+    },
+    {
+      "id": "security",
+      "label": "情報システム部門の審査はありますか？",
+      "optional": true,
+      "unansweredMode": "high",
+      "options": [
+        { "value": "no", "label": "ない（または不要）", "days": 0 },
+        { "value": "yes", "label": "ある", "days": 8 }
+      ]
+    },
+    {
+      "id": "integration",
+      "label": "既存システムとは、どうつなげますか？",
+      "optional": true,
+      "unansweredMode": "high",
+      "options": [
+        { "value": "none", "label": "つながなくてよい", "days": 0 },
+        { "value": "api", "label": "APIがある", "days": 4 },
+        { "value": "csv", "label": "CSVなどで受け渡す", "days": 6 },
+        { "value": "unknown", "label": "わからない／要調査", "days": 10 }
       ]
     }
   ]

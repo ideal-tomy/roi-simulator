@@ -1,0 +1,105 @@
+{
+  "id": "shift-management",
+  "name": "シフト管理の自動化",
+  "summary": "希望を集めて、シフト案を自動で作る",
+  "unitPrice": 50000,
+  "setupFee": 1100000,
+  "baseDays": 10,
+  "monthly": {
+    "infra": 15000,
+    "usage": 5000,
+    "maintenanceRate": 0.1
+  },
+  "rangeSpread": {
+    "low": 0.85,
+    "high": 1.25
+  },
+  "roi": {
+    "peopleLabel": "シフトを組む担当は何人？",
+    "casesLabel": "1人が1ヶ月に何回シフトを作る／直す？",
+    "minutesLabel": "1回あたり、今はだいたい何分？",
+    "reductionLabel": "導入でどれくらい速くなる？",
+    "reductionHint": "希望の収集と割当の時間がどれだけ消えるか。迷ったら60〜80%でOK。",
+    "otherLabel": "欠勤対応・残業・不満の低減など（年間）",
+    "otherHint": "急な変更や不公平感の対応コスト。0でも構いません。",
+    "defaults": {
+      "people": 5,
+      "cases": 8,
+      "minutes": 90,
+      "reduction": 65,
+      "wage": 3000,
+      "other": 1200000
+    }
+  },
+  "questions": [
+    {
+      "id": "customize",
+      "label": "画面は、どこまで作り変えますか？",
+      "hint": "テンプレのまま使えるほど、工程が消えます。",
+      "options": [
+        { "value": "keep", "label": "このまま使う（ロゴと色だけ）", "days": 1 },
+        { "value": "partial", "label": "一部の画面を作り変える", "days": 10 },
+        { "value": "full", "label": "ゼロから設計し直す", "days": 24 }
+      ]
+    },
+    {
+      "id": "staff",
+      "label": "シフトに入る人は何人くらいですか？",
+      "options": [
+        { "value": "s", "label": "〜20人", "factor": 1 },
+        { "value": "m", "label": "21〜80人", "factor": 1.12 },
+        { "value": "l", "label": "81人以上", "factor": 1.3 }
+      ]
+    },
+    {
+      "id": "rules",
+      "label": "シフトの決め方は、どのくらい複雑ですか？",
+      "hint": "希望収集や「連続勤務禁止」などのルールが多いほど工数が増えます。",
+      "options": [
+        { "value": "simple", "label": "単純な割り当てでよい", "days": 2 },
+        { "value": "wish", "label": "希望を集めて案を出す", "days": 8 },
+        { "value": "complex", "label": "複雑な制約・ルールがある", "days": 18 }
+      ]
+    },
+    {
+      "id": "deadline",
+      "label": "いつまでに必要ですか？",
+      "options": [
+        { "value": "relaxed", "label": "3ヶ月以上ある", "factor": 1 },
+        { "value": "standard", "label": "1〜3ヶ月", "factor": 1.15 },
+        { "value": "rush", "label": "1ヶ月以内", "factor": 1.4 }
+      ]
+    },
+    {
+      "id": "notify",
+      "label": "確定シフトの通知は必要ですか？",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        { "value": "none", "label": "画面で見られればよい", "days": 0 },
+        { "value": "mail", "label": "メール通知", "days": 2 },
+        { "value": "line", "label": "LINEなどにも送りたい", "days": 5, "monthlyAdd": 10000 }
+      ]
+    },
+    {
+      "id": "hr_link",
+      "label": "勤怠・人事システムと連携しますか？",
+      "optional": true,
+      "unansweredMode": "high",
+      "options": [
+        { "value": "no", "label": "しない", "days": 0 },
+        { "value": "yes", "label": "する（または検討中）", "days": 10 }
+      ]
+    },
+    {
+      "id": "roles",
+      "label": "店長・エリアなど、権限の分けは必要ですか？",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        { "value": "no", "label": "全員同じでよい", "days": 0 },
+        { "value": "yes", "label": "役職・店舗で分けたい", "days": 6 }
+      ]
+    }
+  ]
+}

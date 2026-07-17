@@ -1,0 +1,113 @@
+{
+  "id": "website",
+  "name": "Webサイト・LP制作",
+  "summary": "会社サイトやランディングページを制作する",
+  "unitPrice": 50000,
+  "setupFee": 400000,
+  "baseDays": 5,
+  "monthly": {
+    "infra": 8000,
+    "usage": 0,
+    "maintenanceRate": 0.08
+  },
+  "rangeSpread": {
+    "low": 0.85,
+    "high": 1.2
+  },
+  "roi": {
+    "peopleLabel": "サイト更新・問い合わせ対応に関わる人は？",
+    "casesLabel": "1人が1ヶ月に何回、手作業で対応する？",
+    "minutesLabel": "1回あたり、今はだいたい何分？",
+    "reductionLabel": "導入でどれくらい速くなる？",
+    "reductionHint": "文言修正や問い合わせ振り分けの時間がどれだけ減るか。迷ったら50〜70%でOK。",
+    "otherLabel": "機会損失・問い合わせ対応の削減（年間）",
+    "otherHint": "問い合わせ漏れや更新遅れによる損失の目安。0でも構いません。",
+    "defaults": {
+      "people": 3,
+      "cases": 15,
+      "minutes": 40,
+      "reduction": 60,
+      "wage": 2800,
+      "other": 800000
+    }
+  },
+  "questions": [
+    {
+      "id": "scale",
+      "label": "ページの規模はどのくらいですか？",
+      "options": [
+        { "value": "lp", "label": "LP（1〜2ページ）", "days": 2 },
+        { "value": "small", "label": "数ページのサイト", "days": 8 },
+        { "value": "mid", "label": "中規模（10ページ前後）", "days": 18 }
+      ]
+    },
+    {
+      "id": "design",
+      "label": "デザインは、どこまで作り込みますか？",
+      "options": [
+        { "value": "template", "label": "テンプレ寄りでよい", "days": 2 },
+        { "value": "custom", "label": "オリジナルで作りたい", "days": 10 },
+        { "value": "brand", "label": "ブランドガイドラインに厳密に合わせる", "days": 16 }
+      ]
+    },
+    {
+      "id": "form",
+      "label": "問い合わせフォームは必要ですか？",
+      "options": [
+        { "value": "no", "label": "不要", "days": 0 },
+        { "value": "simple", "label": "かんたんなフォーム", "days": 2 },
+        { "value": "crm", "label": "通知やCRM連携あり", "days": 6 }
+      ]
+    },
+    {
+      "id": "cms",
+      "label": "公開後の更新は、どうしますか？",
+      "hint": "御社で文章を直せるようにすると、CMSの工程が入ります。",
+      "options": [
+        { "value": "static", "label": "こちらに依頼して更新", "days": 0, "monthlyAdd": 20000 },
+        { "value": "cms", "label": "御社で更新できるようにする", "days": 6 },
+        { "value": "none", "label": "ほぼ更新しない", "days": 0 }
+      ]
+    },
+    {
+      "id": "login",
+      "label": "会員ログインは必要ですか？",
+      "optional": true,
+      "unansweredMode": "high",
+      "options": [
+        { "value": "no", "label": "不要", "days": 0 },
+        { "value": "yes", "label": "必要", "days": 10 }
+      ]
+    },
+    {
+      "id": "i18n",
+      "label": "多言語対応は必要ですか？",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        { "value": "no", "label": "日本語のみ", "days": 0 },
+        { "value": "yes", "label": "英語など他言語も", "days": 8 }
+      ]
+    },
+    {
+      "id": "migrate",
+      "label": "既存サイトからの移行はありますか？",
+      "optional": true,
+      "unansweredMode": "high",
+      "options": [
+        { "value": "no", "label": "新規でよい", "days": 0 },
+        { "value": "yes", "label": "既存の内容を移す", "days": 6 }
+      ]
+    },
+    {
+      "id": "hosting",
+      "label": "サーバーやドメインの指定はありますか？",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        { "value": "standard", "label": "おまかせでよい", "days": 0 },
+        { "value": "specified", "label": "指定の環境がある", "days": 4 }
+      ]
+    }
+  ]
+}

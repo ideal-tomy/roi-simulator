@@ -14,6 +14,23 @@
     "low": 0.85,
     "high": 1.25
   },
+  "roi": {
+    "peopleLabel": "使う人は何人くらい？",
+    "casesLabel": "1人が1ヶ月に何回くらい探す／聞く？",
+    "minutesLabel": "1回あたり、今はだいたい何分？",
+    "reductionLabel": "導入でどれくらい速くなる？",
+    "reductionHint": "資料を探して答える時間がどれだけ消えるか。迷ったら70〜80%でOK。",
+    "otherLabel": "問い合わせ減・属人化解消など（年間）",
+    "otherHint": "同じ質問の繰り返しや、特定の人に頼るコストの削減。0でも構いません。",
+    "defaults": {
+      "people": 50,
+      "cases": 20,
+      "minutes": 8,
+      "reduction": 70,
+      "wage": 3000,
+      "other": 1500000
+    }
+  },
   "questions": [
     {
       "id": "customize",

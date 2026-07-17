@@ -1,6 +1,12 @@
 import type { Inputs } from './calc';
 import type { Answers } from './estimate';
 import type { CategoryKey } from './presets';
+import {
+  parseCompanySize,
+  parseEnvironment,
+  type CompanySize,
+  type Environment,
+} from './context';
 
 /* URLパラメータ名（短縮形）と Inputs のキーの対応 */
 const MAP: Record<string, keyof Inputs> = {
@@ -22,6 +28,8 @@ export type UrlState = {
   category: CategoryKey | null;
   kit: string | null;
   from: string | null;
+  size: CompanySize | null;
+  environment: Environment | null;
   inputs: Partial<Inputs>;
   answers: Answers;
   embed: boolean;
@@ -49,6 +57,8 @@ export function readUrl(): UrlState {
     category: cat === 'field' || cat === 'internal' || cat === 'dashboard' ? cat : null,
     kit: q.get('kit'),
     from: q.get('from'),
+    size: parseCompanySize(q.get('size')),
+    environment: parseEnvironment(q.get('env')),
     inputs,
     answers,
     embed: q.get('embed') === '1' || window.location.pathname.replace(/\/$/, '') === '/embed',
@@ -62,15 +72,29 @@ type BuildArgs = {
   kit?: string | null;
   answers?: Answers;
   from?: string | null;
+  size?: CompanySize | null;
+  environment?: Environment | null;
   embed?: boolean;
 };
 
-function buildParams({ industry, category, inputs, kit, answers, from, embed }: BuildArgs) {
+function buildParams({
+  industry,
+  category,
+  inputs,
+  kit,
+  answers,
+  from,
+  size,
+  environment,
+  embed,
+}: BuildArgs) {
   const q = new URLSearchParams();
   q.set('industry', industry);
   q.set('cat', category);
   if (kit) q.set('kit', kit);
   if (from) q.set('from', from);
+  if (size) q.set('size', size);
+  if (environment) q.set('env', environment);
   if (embed) q.set('embed', '1');
   for (const [param, key] of Object.entries(MAP)) q.set(param, String(inputs[key]));
   if (answers) {
