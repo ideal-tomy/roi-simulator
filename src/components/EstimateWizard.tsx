@@ -11,6 +11,12 @@ type Props = {
   contextInteractive?: boolean;
   /** 規模・環境未選択時などの注意（本体ではピッカー下に出すので省略可） */
   contextNotes?: string[];
+  /** HP など入口の from=（表示のみ） */
+  fromHint?: string | null;
+  /** 自由記述（金額非連動） */
+  memo?: string;
+  onMemoChange?: (value: string) => void;
+  memoMaxLength?: number;
   onAnswer: (qid: string, value: string) => void;
   onReset: () => void;
   onScrollToPickers?: () => void;
@@ -131,6 +137,10 @@ export function EstimateWizard({
   industryName,
   contextInteractive = true,
   contextNotes = [],
+  fromHint = null,
+  memo = '',
+  onMemoChange,
+  memoMaxLength = 200,
   onAnswer,
   onReset,
   onScrollToPickers,
@@ -282,7 +292,9 @@ export function EstimateWizard({
             <div className="eyebrow">かんたん概算見積もり｜{kit.name}</div>
             <h2 className="est-title">まず、いくらで作れるかを出します。</h2>
             <p className="est-lead">
-              {kit.summary}。基本の質問に答えるほど幅が決まります。
+              {kit.id === 'webapp'
+                ? '一覧に無い開発も、近い業務システムとして概算できます。下の一言メモ（任意）にやりたいことを残してください。'
+                : `${kit.summary}。基本の質問に答えるほど幅が決まります。`}
               {isMobile
                 ? '1問ずつ答えると、下の金額がその場で変わります。'
                 : 'より正確にしたいときだけ、追加の質問を開いてください。'}
@@ -312,11 +324,36 @@ export function EstimateWizard({
           </div>
         )}
 
+        {fromHint?.startsWith('hp-') && (
+          <div className="est-from-hint" role="status">
+            HPからのご案内を反映しています（入口: {fromHint}）
+          </div>
+        )}
+
         {contextNotes.length > 0 && (
           <div className="est-ctx-notes" role="status">
             {contextNotes.map((n) => (
               <div key={n}>{n}</div>
             ))}
+          </div>
+        )}
+
+        {onMemoChange && (
+          <div className="est-memo">
+            <label className="est-memo-label" htmlFor="est-memo-input">
+              やりたいことの一言（任意）
+            </label>
+            <p className="est-memo-hint">金額には使いません。担当が内容を把握するために残せます。</p>
+            <textarea
+              id="est-memo-input"
+              className="est-memo-input"
+              rows={2}
+              maxLength={memoMaxLength}
+              value={memo}
+              placeholder="例: 顧客向けの問い合わせ対応を自動化したい"
+              onChange={(e) => onMemoChange(e.target.value)}
+            />
+            <div className="est-memo-count">{memo.length}/{memoMaxLength}</div>
           </div>
         )}
 

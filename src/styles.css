@@ -99,12 +99,26 @@ header.bar .wrap{
 .kit-picker button[aria-pressed="true"]{background:#fff;color:var(--navy);border-color:#fff}
 .kit-picker .kit-close{margin-left:auto;border-color:rgba(255,255,255,.45)}
 .kit-picker .kit-close:hover{background:rgba(255,255,255,.12)}
+.kit-picker .kit-other{border-style:dashed;border-color:rgba(255,255,255,.45)}
+.kit-picker .kit-other[aria-pressed="true"]{background:#fff;color:var(--navy);border-color:#fff;border-style:solid}
 
 @media(max-width:760px){
   .kit-picker .wrap{padding-left:16px;padding-right:16px}
   .kit-picker .lb{width:100%}
   .kit-picker button{font-size:12px;padding:7px 12px}
   .kit-picker .kit-close{margin-left:0;width:100%;text-align:center}
+}
+
+.kit-hub-other{
+  appearance:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;
+  display:block;width:100%;margin-top:14px;padding:12px 16px;text-align:center;
+  border-radius:12px;border:1.5px dashed var(--line);background:#FAFBFD;color:var(--navy);
+  transition:.15s;
+}
+.kit-hub-other:hover{border-color:var(--blue);background:#EEF4FF}
+.kit-hub-other:focus-visible{outline:3px solid #8fb6ff;outline-offset:2px}
+.kit-hub-other-hint{
+  margin:8px 0 0;font-size:12px;font-weight:600;color:var(--muted);text-align:center;line-height:1.5;
 }
 
 /* 共通コンテキスト（会社規模・使用環境） */
@@ -135,6 +149,26 @@ header.bar .wrap{
   margin-top:14px;background:#FFF6E8;border:1px solid #F0C674;border-radius:10px;
   padding:10px 14px;font-size:12.5px;font-weight:700;color:#8A5A00;line-height:1.6;
 }
+
+.est-from-hint{
+  margin-top:14px;background:#EEF4FF;border:1px solid #C5D6F5;border-radius:10px;
+  padding:10px 14px;font-size:12.5px;font-weight:700;color:#1E3A6E;line-height:1.5;
+}
+
+.est-memo{
+  margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:12px;
+  padding:14px 16px;
+}
+.est-memo-label{display:block;font-size:13px;font-weight:800;color:var(--navy);margin-bottom:4px}
+.est-memo-hint{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--muted);line-height:1.5}
+.est-memo-input{
+  width:100%;box-sizing:border-box;resize:vertical;min-height:56px;
+  font-family:inherit;font-size:14px;line-height:1.5;color:var(--navy);
+  border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;
+  background:#FAFBFD;
+}
+.est-memo-input:focus{outline:3px solid #8fb6ff;outline-offset:1px;border-color:#8fb6ff}
+.est-memo-count{margin-top:6px;font-size:11px;font-weight:600;color:var(--muted);text-align:right}
 
 /* 見積もり起動 CTA */
 .est-launch{display:flex;align-items:center;gap:14px;flex-wrap:wrap}

@@ -3,16 +3,16 @@
   "name": "Webサイト・LP制作",
   "summary": "会社サイトやランディングページを制作する",
   "unitPrice": 50000,
-  "setupFee": 400000,
-  "baseDays": 5,
+  "setupFee": 800000,
+  "baseDays": 7,
   "monthly": {
-    "infra": 8000,
+    "infra": 10000,
     "usage": 0,
-    "maintenanceRate": 0.08
+    "maintenanceRate": 0.1
   },
   "rangeSpread": {
-    "low": 0.85,
-    "high": 1.2
+    "low": 0.88,
+    "high": 1.22
   },
   "roi": {
     "peopleLabel": "サイト更新・問い合わせ対応に関わる人は？",
@@ -36,18 +36,18 @@
       "id": "scale",
       "label": "ページの規模はどのくらいですか？",
       "options": [
-        { "value": "lp", "label": "LP（1〜2ページ）", "days": 2 },
-        { "value": "small", "label": "数ページのサイト", "days": 8 },
-        { "value": "mid", "label": "中規模（10ページ前後）", "days": 18 }
+        { "value": "lp", "label": "LP（1〜2ページ）", "days": 3 },
+        { "value": "small", "label": "数ページのサイト", "days": 9 },
+        { "value": "mid", "label": "中規模（10ページ前後）", "days": 20 }
       ]
     },
     {
       "id": "design",
       "label": "デザインは、どこまで作り込みますか？",
       "options": [
-        { "value": "template", "label": "テンプレ寄りでよい", "days": 2 },
-        { "value": "custom", "label": "オリジナルで作りたい", "days": 10 },
-        { "value": "brand", "label": "ブランドガイドラインに厳密に合わせる", "days": 16 }
+        { "value": "template", "label": "テンプレ寄りでよい", "days": 3 },
+        { "value": "custom", "label": "オリジナルで作りたい", "days": 12 },
+        { "value": "brand", "label": "ブランドガイドラインに厳密に合わせる", "days": 18 }
       ]
     },
     {

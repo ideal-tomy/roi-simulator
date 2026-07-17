@@ -28,9 +28,25 @@ const modules = import.meta.glob<{ default: Preset }>('../data/presets/*.json', 
   eager: true,
 });
 
-export const PRESETS: Preset[] = Object.values(modules)
-  .map((m) => m.default)
-  .sort((a, b) => a.name.localeCompare(b.name, 'ja'));
+/** セレクター主要表示順（金額影響帯・需要を意識） */
+export const FEATURED_INDUSTRY_IDS = [
+  'construction',
+  'manufacturing',
+  'electrical',
+  'logistics',
+  'nursing',
+  'professional',
+] as const;
+
+export const OTHER_INDUSTRY_ID = 'other';
+
+export const PRESETS: Preset[] = Object.values(modules).map((m) => m.default);
 
 export const getPreset = (id: string | null): Preset =>
-  PRESETS.find((p) => p.id === id) ?? PRESETS[0];
+  PRESETS.find((p) => p.id === id) ?? PRESETS.find((p) => p.id === 'construction') ?? PRESETS[0];
+
+export const FEATURED_PRESETS: Preset[] = FEATURED_INDUSTRY_IDS.map(
+  (id) => PRESETS.find((p) => p.id === id),
+).filter((p): p is Preset => !!p);
+
+export const OTHER_PRESET: Preset | undefined = PRESETS.find((p) => p.id === OTHER_INDUSTRY_ID);

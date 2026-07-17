@@ -3,15 +3,15 @@
   "name": "社内ナレッジチャットボット",
   "summary": "社内文書を検索して、根拠つきで答えるチャットボット",
   "unitPrice": 50000,
-  "setupFee": 1200000,
-  "baseDays": 6,
+  "setupFee": 1300000,
+  "baseDays": 7,
   "monthly": {
-    "infra": 20000,
-    "usage": 30000,
+    "infra": 22000,
+    "usage": 32000,
     "maintenanceRate": 0.1
   },
   "rangeSpread": {
-    "low": 0.85,
+    "low": 0.88,
     "high": 1.25
   },
   "roi": {

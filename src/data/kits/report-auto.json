@@ -3,15 +3,15 @@
   "name": "報告書・帳票の自動作成",
   "summary": "現場の入力から、提出用の報告書を自動で組み立てる",
   "unitPrice": 50000,
-  "setupFee": 1000000,
-  "baseDays": 8,
+  "setupFee": 1200000,
+  "baseDays": 9,
   "monthly": {
-    "infra": 15000,
-    "usage": 10000,
+    "infra": 18000,
+    "usage": 12000,
     "maintenanceRate": 0.1
   },
   "rangeSpread": {
-    "low": 0.85,
+    "low": 0.88,
     "high": 1.25
   },
   "roi": {
@@ -37,9 +37,9 @@
       "label": "自動で作りたい書類は、何種類ありますか？",
       "hint": "日報、施工写真台帳、クライアント提出用など。種類が増えるほどテンプレ設計が増えます。",
       "options": [
-        { "value": "s", "label": "1〜2種類", "days": 2 },
-        { "value": "m", "label": "3〜5種類", "days": 8 },
-        { "value": "l", "label": "6種類以上", "days": 16 }
+        { "value": "s", "label": "1〜2種類", "days": 3 },
+        { "value": "m", "label": "3〜5種類", "days": 9 },
+        { "value": "l", "label": "6種類以上", "days": 18 }
       ]
     },
     {

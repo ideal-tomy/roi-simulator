@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { calculate, fmtInt, fmtMan, fmtPayback, type Inputs } from './lib/calc';
-import { PRESETS, getPreset, type CategoryKey } from './lib/presets';
+import { getPreset, FEATURED_PRESETS, OTHER_INDUSTRY_ID, type CategoryKey } from './lib/presets';
 import { estimate, type Answers } from './lib/estimate';
 import { KITS, defaultKitId, getKit } from './lib/kits';
-import { readUrl, writeUrl, shareUrl, embedSnippet } from './lib/url';
+import { readUrl, writeUrl, shareUrl, embedSnippet, MEMO_MAX_LENGTH, clampMemo } from './lib/url';
 import {
   SIZE_OPTIONS,
   ENV_OPTIONS,
@@ -41,9 +41,10 @@ export default function App() {
   const kit = useMemo(() => getKit(kitId), [kitId]);
   const [companySize, setCompanySize] = useState<CompanySize | null>(url.size);
   const [environment, setEnvironment] = useState<Environment | null>(url.environment);
+  const [memo, setMemo] = useState(url.memo);
   const estimateCtx = useMemo(
-    () => ({ size: companySize, environment }),
-    [companySize, environment],
+    () => ({ size: companySize, environment, industryId }),
+    [companySize, environment, industryId],
   );
   const ctxNotes = useMemo(() => contextNotes(estimateCtx), [estimateCtx]);
 
@@ -202,11 +203,12 @@ export default function App() {
     from: url.from,
     size: companySize,
     environment,
+    memo,
   };
 
   useEffect(() => {
     writeUrl({ ...urlArgs, embed: url.embed });
-  }, [industryId, catKey, inputs, answers, url.embed, kitId, url.from, companySize, environment]);
+  }, [industryId, catKey, inputs, answers, url.embed, kitId, url.from, companySize, environment, memo]);
 
   // 埋め込み時：親フレームに高さを通知
   useEffect(() => {
@@ -268,12 +270,19 @@ export default function App() {
           <div className="picker" ref={pickerRef}>
             <div className="wrap">
               <span className="lb">業界を選ぶ</span>
-              {PRESETS.map((p) => (
+              {FEATURED_PRESETS.map((p) => (
                 <button key={p.id} aria-pressed={p.id === industryId}
                         onClick={() => switchIndustry(p.id)}>
                   {p.name}
                 </button>
               ))}
+              <button
+                type="button"
+                aria-pressed={industryId === OTHER_INDUSTRY_ID}
+                onClick={() => switchIndustry(OTHER_INDUSTRY_ID)}
+              >
+                その他
+              </button>
             </div>
           </div>
         </>
@@ -288,7 +297,7 @@ export default function App() {
               <p className="kit-hub-lead">質問に答えると、開発費の目安がその場で分かります。</p>
             </div>
             <div className="kit-hub-grid">
-              {KITS.map((k) => (
+              {KITS.filter((k) => k.id !== 'webapp').map((k) => (
                 <button
                   key={k.id}
                   type="button"
@@ -300,6 +309,16 @@ export default function App() {
                 </button>
               ))}
             </div>
+            <button
+              type="button"
+              className="kit-hub-other"
+              onClick={() => openEstimate('webapp')}
+            >
+              一覧に近いものが無い（汎用の業務システムで概算）
+            </button>
+            <p className="kit-hub-other-hint">
+              概算のあと、やりたいことの一言を残せます（金額には使いません）。
+            </p>
           </div>
         </div>
       )}
@@ -310,7 +329,7 @@ export default function App() {
             <div className="kit-picker hint-pulse hint-pulse-kit" ref={kitPickerRef}>
               <div className="wrap">
                 <span className="lb">見積もる内容</span>
-                {KITS.map((k) => (
+                {KITS.filter((k) => k.id !== 'webapp').map((k) => (
                   <button
                     key={k.id}
                     type="button"
@@ -323,6 +342,17 @@ export default function App() {
                     {k.name}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  className="kit-other"
+                  aria-pressed={kitId === 'webapp'}
+                  onClick={() => {
+                    setAnswers({});
+                    openEstimate('webapp');
+                  }}
+                >
+                  近いものが無い
+                </button>
                 <button type="button" className="kit-close" onClick={closeEstimate}>
                   閉じる
                 </button>
@@ -377,6 +407,10 @@ export default function App() {
               answers={answers}
               est={est}
               industryName={preset.name}
+              fromHint={url.from}
+              memo={memo}
+              onMemoChange={(v) => setMemo(clampMemo(v))}
+              memoMaxLength={MEMO_MAX_LENGTH}
               contextNotes={url.embed ? ctxNotes : []}
               contextInteractive
               onScrollToPickers={() => {

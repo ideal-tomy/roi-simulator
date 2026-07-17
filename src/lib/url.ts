@@ -23,6 +23,14 @@ const MAP: Record<string, keyof Inputs> = {
 /** 質問の回答は a_<質問id> で持つ（例：a_files=m） */
 const ANS_PREFIX = 'a_';
 
+/** 自由記述（金額非連動）。共有・引き継ぎ用 */
+export const MEMO_MAX_LENGTH = 200;
+
+export function clampMemo(raw: string | null | undefined): string {
+  if (!raw) return '';
+  return raw.slice(0, MEMO_MAX_LENGTH);
+}
+
 export type UrlState = {
   industry: string | null;
   category: CategoryKey | null;
@@ -30,6 +38,7 @@ export type UrlState = {
   from: string | null;
   size: CompanySize | null;
   environment: Environment | null;
+  memo: string;
   inputs: Partial<Inputs>;
   answers: Answers;
   embed: boolean;
@@ -59,6 +68,7 @@ export function readUrl(): UrlState {
     from: q.get('from'),
     size: parseCompanySize(q.get('size')),
     environment: parseEnvironment(q.get('env')),
+    memo: clampMemo(q.get('memo')),
     inputs,
     answers,
     embed: q.get('embed') === '1' || window.location.pathname.replace(/\/$/, '') === '/embed',
@@ -74,6 +84,7 @@ type BuildArgs = {
   from?: string | null;
   size?: CompanySize | null;
   environment?: Environment | null;
+  memo?: string | null;
   embed?: boolean;
 };
 
@@ -86,6 +97,7 @@ function buildParams({
   from,
   size,
   environment,
+  memo,
   embed,
 }: BuildArgs) {
   const q = new URLSearchParams();
@@ -95,6 +107,8 @@ function buildParams({
   if (from) q.set('from', from);
   if (size) q.set('size', size);
   if (environment) q.set('env', environment);
+  const memoTrim = clampMemo(memo);
+  if (memoTrim) q.set('memo', memoTrim);
   if (embed) q.set('embed', '1');
   for (const [param, key] of Object.entries(MAP)) q.set(param, String(inputs[key]));
   if (answers) {

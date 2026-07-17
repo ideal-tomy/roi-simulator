@@ -1,0 +1,107 @@
+{
+  "id": "webapp",
+  "name": "Webアプリ・業務システム",
+  "summary": "一覧に近いものが無いときも含め、業務用の画面・データ・権限を持つシステム",
+  "unitPrice": 50000,
+  "setupFee": 1800000,
+  "baseDays": 14,
+  "monthly": {
+    "infra": 30000,
+    "usage": 15000,
+    "maintenanceRate": 0.12
+  },
+  "rangeSpread": {
+    "low": 0.88,
+    "high": 1.28
+  },
+  "roi": {
+    "peopleLabel": "この業務に関わる人は何人くらい？",
+    "casesLabel": "1人が1ヶ月に何回、その作業をする？",
+    "minutesLabel": "1回あたり、今はだいたい何分？",
+    "reductionLabel": "導入でどれくらい速くなる？",
+    "reductionHint": "手作業や転記がどれだけ消えるか。迷ったら50〜70%でOK。",
+    "otherLabel": "ミス削減・属人化解消など（年間）",
+    "otherHint": "やり直しや特定の人への依存コスト。0でも構いません。",
+    "defaults": {
+      "people": 25,
+      "cases": 20,
+      "minutes": 30,
+      "reduction": 60,
+      "wage": 3200,
+      "other": 2000000
+    }
+  },
+  "questions": [
+    {
+      "id": "customize",
+      "label": "画面は、どこまで作り変えますか？",
+      "hint": "テンプレや既存デモに寄せられるほど、工程が消えます。",
+      "options": [
+        { "value": "keep", "label": "テンプレ寄りでよい（見た目の調整中心）", "days": 3 },
+        { "value": "partial", "label": "主な画面だけ作り変える", "days": 16 },
+        { "value": "full", "label": "ゼロから設計し直す", "days": 36 }
+      ]
+    },
+    {
+      "id": "screens",
+      "label": "画面の規模はどのくらいですか？",
+      "hint": "一覧・詳細・登録など、人が操作する画面の多さです。",
+      "options": [
+        { "value": "s", "label": "少ない（〜5画面）", "days": 5 },
+        { "value": "m", "label": "中くらい（6〜15画面）", "days": 16 },
+        { "value": "l", "label": "多い（16画面以上）", "days": 30 }
+      ]
+    },
+    {
+      "id": "auth",
+      "label": "ログインや権限の分けは、どのくらい必要ですか？",
+      "options": [
+        { "value": "none", "label": "ログインなしでよい", "days": 0 },
+        { "value": "simple", "label": "全員同じ権限のログイン", "days": 5 },
+        { "value": "roles", "label": "部署・役割ごとに権限を分ける", "days": 14 }
+      ]
+    },
+    {
+      "id": "integration",
+      "label": "既存システムとの連携はありますか？",
+      "hint": "APIやCSVでのデータのやり取りです。不明なときは「ある／検討中」で見積もります。",
+      "options": [
+        { "value": "no", "label": "なし（このシステムだけで完結）", "days": 0 },
+        { "value": "csv", "label": "CSVの取り込み・書き出し", "days": 6 },
+        { "value": "api", "label": "API連携がある／検討中", "days": 16 }
+      ]
+    },
+    {
+      "id": "migrate",
+      "label": "既存データの移行はありますか？",
+      "optional": true,
+      "unansweredMode": "high",
+      "options": [
+        { "value": "no", "label": "新規で始める", "days": 0 },
+        { "value": "yes", "label": "既存データを移す", "days": 12 }
+      ]
+    },
+    {
+      "id": "sla",
+      "label": "稼働の厳しさはどのくらいですか？",
+      "optional": true,
+      "unansweredMode": "range",
+      "options": [
+        { "value": "weekday", "label": "平日の業務時間だけでよい", "days": 0 },
+        { "value": "extended", "label": "夜間・休日も使う", "days": 5, "monthlyAdd": 18000 },
+        { "value": "strict", "label": "止まると困る（監視・冗長寄りの検討）", "days": 12, "monthlyAdd": 45000 }
+      ]
+    },
+    {
+      "id": "deadline",
+      "label": "いつまでに必要ですか？",
+      "optional": true,
+      "unansweredMode": "high",
+      "options": [
+        { "value": "relaxed", "label": "3ヶ月以上ある", "factor": 1 },
+        { "value": "standard", "label": "1〜3ヶ月", "factor": 1.15 },
+        { "value": "rush", "label": "1ヶ月以内", "factor": 1.4 }
+      ]
+    }
+  ]
+}

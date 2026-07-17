@@ -9,7 +9,7 @@ import type { KitRoiProfile } from './roiProfile';
        unansweredMode "high"         → 重い方を両端に固定（安い見積事故を防ぐ）
    ・optional: true の質問は UI で任意表示（エンジンは全問を計算に使う）
    ・人日・単価が未設定（0）のうちは calibrated=false を返し、金額を出させない
-   ・共通コンテキスト（規模・環境）は最終金額に係数として掛ける
+   ・共通コンテキスト（規模・環境・業種帯）は最終金額に係数として掛ける
    ========================================================================= */
 
 export type KitOption = {
@@ -82,7 +82,7 @@ function optionMonthly(o: KitOption) {
 export function estimate(
   kit: Kit,
   answers: Answers,
-  ctx: EstimateContext = { size: null, environment: null },
+  ctx: EstimateContext = { size: null, environment: null, industryId: null },
 ): Estimate {
   // 単価・土台人日が未設定なら金額を出さない（¥0を客に見せる事故を防ぐ）
   const calibrated = kit.unitPrice > 0 && kit.baseDays > 0;
