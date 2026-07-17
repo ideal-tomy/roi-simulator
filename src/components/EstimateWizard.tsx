@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fmtMan } from '../lib/calc';
+import type { CompanySize, Environment } from '../lib/context';
 import type { Kit, KitQuestion, Answers, Estimate } from '../lib/estimate';
+import { pickHighlightFactors, SCOPE_FACTORS } from '../lib/scopeFactors';
 
 type Props = {
   kit: Kit;
   answers: Answers;
   est: Estimate;
   industryName: string;
+  /** 会社規模（変動要因ハイライト用・金額計算は App 側） */
+  companySize?: CompanySize | null;
+  /** 使用環境（変動要因ハイライト用） */
+  environment?: Environment | null;
+  /** 業種 id（変動要因ハイライト用） */
+  industryId?: string | null;
   /** false のときコンテキストは表示のみ（embed で業種ピッカーが無い等） */
   contextInteractive?: boolean;
   /** 規模・環境未選択時などの注意（本体ではピッカー下に出すので省略可） */
@@ -57,7 +65,7 @@ function QuestionBlock({
       <div className="est-ql">{q.label}</div>
       {q.hint && <div className="est-qh">{q.hint}</div>}
       {q.unansweredMode === 'high' && !answers[q.id] && (
-        <div className="est-qnote">未回答のため「重い方」で計算中</div>
+        <div className="est-qnote">未回答のため、安全側で計算中</div>
       )}
       <div className="est-opts">
         {q.options.map((o) => (
@@ -76,18 +84,91 @@ function QuestionBlock({
   );
 }
 
+function ScopeFactorsPanel({
+  answers,
+  companySize,
+  environment,
+  industryId,
+  variant = 'card',
+}: {
+  answers: Answers;
+  companySize?: CompanySize | null;
+  environment?: Environment | null;
+  industryId?: string | null;
+  /** card = 結果カード内（濃色） / panel = モバイル用（淡色） */
+  variant?: 'card' | 'panel';
+}) {
+  const [open, setOpen] = useState(false);
+  const highlights = useMemo(
+    () =>
+      pickHighlightFactors({
+        answers,
+        size: companySize ?? null,
+        environment: environment ?? null,
+        industryId,
+      }),
+    [answers, companySize, environment, industryId],
+  );
+
+  return (
+    <div className={`est-scope est-scope-${variant}`}>
+      <div className="est-scope-label">主な変動要因</div>
+      <ul className="est-scope-highlights">
+        {highlights.map((f) => (
+          <li key={f.id}>{f.label}</li>
+        ))}
+      </ul>
+
+      <div className="est-scope-acc">
+        <button
+          type="button"
+          className="est-scope-toggle"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span>この概算に入りにくい要素</span>
+          <span className="est-scope-chevron" aria-hidden>{open ? '−' : '+'}</span>
+        </button>
+        {open && (
+          <div className="est-scope-body">
+            <p className="est-scope-lead">
+              金額には自動反映しません。中堅以上や要件が厚い案件では、確認後に上振れすることがあります。
+            </p>
+            <ul className="est-scope-list">
+              {SCOPE_FACTORS.map((f) => (
+                <li key={f.id}>
+                  <span className="est-scope-item-label">{f.label}</span>
+                  <span className="est-scope-item-detail">{f.detail}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ResultCard({
   est,
   pct,
   basicDone,
   optionalQsLen,
   optionalAnswered,
+  answers,
+  companySize,
+  environment,
+  industryId,
 }: {
   est: Estimate;
   pct: number;
   basicDone: boolean;
   optionalQsLen: number;
   optionalAnswered: number;
+  answers: Answers;
+  companySize?: CompanySize | null;
+  environment?: Environment | null;
+  industryId?: string | null;
 }) {
   return (
     <div className="est-card">
@@ -107,9 +188,9 @@ function ResultCard({
         <div className="est-progtxt">
           {basicDone
             ? optionalAnswered === optionalQsLen && optionalQsLen > 0
-              ? '基本＋追加の回答済み。これ以上は要件を伺って精度を上げます。'
-              : '基本は回答済み。追加回答でさらに精度を上げられます。'
-            : `基本 ${est.basicTotal}問中 ${est.basicAnswered}問に回答。`}
+              ? '基本＋追加の回答済み'
+              : '基本は回答済み。追加回答で精度を上げられます'
+            : `基本 ${est.basicTotal}問中 ${est.basicAnswered}問`}
         </div>
       </div>
 
@@ -120,9 +201,16 @@ function ResultCard({
         </div>
       )}
 
+      <ScopeFactorsPanel
+        answers={answers}
+        companySize={companySize}
+        environment={environment}
+        industryId={industryId}
+        variant="card"
+      />
+
       <div className="est-caution">
-        この金額はあくまで<b>概算</b>です。デモを流用できる範囲は工程が消えるため安く、
-        フルカスタムはスコープが大きいため高くなります。値引きではなくメニューです。
+        この金額はあくまで<b>概算</b>です。正式な金額は要件確認後に提示します。
       </div>
     </div>
   );
@@ -135,6 +223,9 @@ export function EstimateWizard({
   answers,
   est,
   industryName,
+  companySize = null,
+  environment = null,
+  industryId = null,
   contextInteractive = true,
   contextNotes = [],
   fromHint = null,
@@ -289,15 +380,12 @@ export function EstimateWizard({
       <div className="wrap">
         <div className="est-head">
           <div>
-            <div className="eyebrow">かんたん概算見積もり｜{kit.name}</div>
-            <h2 className="est-title">まず、いくらで作れるかを出します。</h2>
+            <div className="eyebrow">概算見積もり｜{kit.name}</div>
+            <h2 className="est-title">開発費の目安を出します。</h2>
             <p className="est-lead">
               {kit.id === 'webapp'
-                ? '一覧に無い開発も、近い業務システムとして概算できます。下の一言メモ（任意）にやりたいことを残してください。'
-                : `${kit.summary}。基本の質問に答えるほど幅が決まります。`}
-              {isMobile
-                ? '1問ずつ答えると、下の金額がその場で変わります。'
-                : 'より正確にしたいときだけ、追加の質問を開いてください。'}
+                ? '近いものが無い場合も、汎用の業務システムとして概算できます。必要なら下に一言メモを残せます。'
+                : kit.summary}
             </p>
           </div>
           {est.answered > 0 && (
@@ -326,7 +414,7 @@ export function EstimateWizard({
 
         {fromHint?.startsWith('hp-') && (
           <div className="est-from-hint" role="status">
-            HPからのご案内を反映しています（入口: {fromHint}）
+            HPからの案内を反映しています
           </div>
         )}
 
@@ -343,14 +431,14 @@ export function EstimateWizard({
             <label className="est-memo-label" htmlFor="est-memo-input">
               やりたいことの一言（任意）
             </label>
-            <p className="est-memo-hint">金額には使いません。担当が内容を把握するために残せます。</p>
+            <p className="est-memo-hint">金額には使いません。担当確認用のメモです。</p>
             <textarea
               id="est-memo-input"
               className="est-memo-input"
               rows={2}
               maxLength={memoMaxLength}
               value={memo}
-              placeholder="例: 顧客向けの問い合わせ対応を自動化したい"
+              placeholder="例: 問い合わせ対応を自動化したい"
               onChange={(e) => onMemoChange(e.target.value)}
             />
             <div className="est-memo-count">{memo.length}/{memoMaxLength}</div>
@@ -362,7 +450,6 @@ export function EstimateWizard({
           <div className="est-grid">
             <div className="est-panel" aria-label="見積もりに対する質問">
               <div className="est-panel-badge">見積もりの質問</div>
-              <p className="est-panel-hint">答えを選ぶと、右の概算金額が変わります。</p>
               <div className="est-qs">
                 {basicQs.map((q) => (
                   <QuestionBlock key={q.id} q={q} answers={answers} onAnswer={onAnswer} />
@@ -377,9 +464,9 @@ export function EstimateWizard({
                       onClick={() => setDetailsOpen((v) => !v)}
                     >
                       <span>
-                        より正確な数値を算出したい場合は、質問への回答を追加
+                        追加で答える
                         {optionalAnswered > 0 && (
-                          <small>（{optionalQs.length}問中 {optionalAnswered}問回答済み）</small>
+                          <small>（{optionalQs.length}問中 {optionalAnswered}問）</small>
                         )}
                       </span>
                       <span className="est-details-chevron" aria-hidden>{detailsOpen ? '−' : '+'}</span>
@@ -387,8 +474,7 @@ export function EstimateWizard({
                     {detailsOpen && (
                       <div className="est-details-body">
                         <p className="est-details-lead">
-                          審査やデータ取り込みなど、見落としやすい項目です。
-                          未回答の項目は、安い側に倒さず安全側で計算します。
+                          未回答の項目は、安全側で計算します。
                         </p>
                         {optionalQs.map((q) => (
                           <QuestionBlock key={q.id} q={q} answers={answers} onAnswer={onAnswer} />
@@ -407,10 +493,13 @@ export function EstimateWizard({
                 basicDone={basicDone}
                 optionalQsLen={optionalQs.length}
                 optionalAnswered={optionalAnswered}
+                answers={answers}
+                companySize={companySize}
+                environment={environment}
+                industryId={industryId}
               />
               <div className="est-flow">
-                下のシミュレーターには、<b>この概算の上限</b>が自動で入ります。
-                <small>厳しい方の金額で回収が成立するか、を見るためです。</small>
+                下の試算には、<b>この概算の上限</b>が入ります。
               </div>
             </div>
           </div>
@@ -418,84 +507,93 @@ export function EstimateWizard({
 
         {/* —— モバイル: 1問ステップ —— */}
         {isMobile && (
-          <div className="est-panel est-panel-step" aria-label="見積もりに対する質問">
-            <div className="est-panel-badge">見積もりの質問</div>
-            <p className="est-panel-hint">1問ずつ答えると、下の概算金額がその場で変わります。</p>
-            <div className="est-step">
-              <div className="est-step-meta" aria-live="polite">
-                <span className="est-step-label">{stepLabel}</span>
-                <div className="est-bar est-step-bar"><span style={{ width: `${pct}%` }} /></div>
-              </div>
-
-              {phase === 'basic' && currentBasic && (
-                <QuestionBlock
-                  q={currentBasic}
-                  answers={answers}
-                  onAnswer={handleMobileAnswer}
-                />
-              )}
-
-              {phase === 'optional-gate' && (
-                <div className="est-gate">
-                  <p className="est-gate-title">基本の質問は終わりました。</p>
-                  <p className="est-gate-lead">
-                    追加の質問に答えると、さらに精度が上がります。スキップしても概算は使えます
-                    （未回答は安全側で計算します）。
-                  </p>
-                  <button
-                    type="button"
-                    className="est-gate-primary"
-                    onClick={() => {
-                      setPhase('optional');
-                      setStep(0);
-                    }}
-                  >
-                    追加の質問で精度を上げる
-                  </button>
-                  <button
-                    type="button"
-                    className="est-gate-secondary"
-                    onClick={() => setPhase('done')}
-                  >
-                    このまま進む
-                  </button>
+          <>
+            <div className="est-panel est-panel-step" aria-label="見積もりに対する質問">
+              <div className="est-panel-badge">見積もりの質問</div>
+              <div className="est-step">
+                <div className="est-step-meta" aria-live="polite">
+                  <span className="est-step-label">{stepLabel}</span>
+                  <div className="est-bar est-step-bar"><span style={{ width: `${pct}%` }} /></div>
                 </div>
-              )}
 
-              {phase === 'optional' && currentOptional && (
-                <QuestionBlock
-                  q={currentOptional}
-                  answers={answers}
-                  onAnswer={handleMobileAnswer}
-                />
-              )}
-
-              {phase === 'done' && (
-                <div className="est-gate">
-                  <p className="est-gate-title">概算の準備ができました。</p>
-                  <p className="est-gate-lead">
-                    下の金額を確認し、このままROIシミュレーターで回収の目安を見てください。
-                    戻って回答を直すこともできます。
-                  </p>
-                </div>
-              )}
-
-              <div className="est-step-nav">
-                <button type="button" className="est-nav-btn" disabled={!canBack} onClick={back}>
-                  戻る
-                </button>
-                {(phase === 'basic' || phase === 'optional') && (
-                  <button type="button" className="est-nav-btn est-nav-skip" onClick={skip}>
-                    スキップ
-                  </button>
+                {phase === 'basic' && currentBasic && (
+                  <QuestionBlock
+                    q={currentBasic}
+                    answers={answers}
+                    onAnswer={handleMobileAnswer}
+                  />
                 )}
-              </div>
 
-              <div className="est-flow est-flow-mobile">
-                下のシミュレーターには、<b>この概算の上限</b>が自動で入ります。
+                {phase === 'optional-gate' && (
+                  <div className="est-gate">
+                    <p className="est-gate-title">基本の質問は終わりました。</p>
+                    <p className="est-gate-lead">
+                      追加で答えると精度が上がります。スキップしても概算は使えます（未回答は安全側）。
+                    </p>
+                    <button
+                      type="button"
+                      className="est-gate-primary"
+                      onClick={() => {
+                        setPhase('optional');
+                        setStep(0);
+                      }}
+                    >
+                      追加で答える
+                    </button>
+                    <button
+                      type="button"
+                      className="est-gate-secondary"
+                      onClick={() => setPhase('done')}
+                    >
+                      このまま進む
+                    </button>
+                  </div>
+                )}
+
+                {phase === 'optional' && currentOptional && (
+                  <QuestionBlock
+                    q={currentOptional}
+                    answers={answers}
+                    onAnswer={handleMobileAnswer}
+                  />
+                )}
+
+                {phase === 'done' && (
+                  <div className="est-gate">
+                    <p className="est-gate-title">概算の準備ができました。</p>
+                    <p className="est-gate-lead">
+                      下の金額を確認し、回収の目安を見てください。回答はいつでも直せます。
+                    </p>
+                  </div>
+                )}
+
+                <div className="est-step-nav">
+                  <button type="button" className="est-nav-btn" disabled={!canBack} onClick={back}>
+                    戻る
+                  </button>
+                  {(phase === 'basic' || phase === 'optional') && (
+                    <button type="button" className="est-nav-btn est-nav-skip" onClick={skip}>
+                      スキップ
+                    </button>
+                  )}
+                </div>
+
+                <div className="est-flow est-flow-mobile">
+                  下の試算には、<b>この概算の上限</b>が入ります。
+                </div>
               </div>
             </div>
-          </div>
+
+            <div className="est-scope-mobile">
+              <ScopeFactorsPanel
+                answers={answers}
+                companySize={companySize}
+                environment={environment}
+                industryId={industryId}
+                variant="panel"
+              />
+            </div>
+          </>
         )}
       </div>
 

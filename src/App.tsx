@@ -294,7 +294,7 @@ export default function App() {
             <div className="kit-hub-head">
               <div className="eyebrow">概算見積もり</div>
               <h2 className="kit-hub-title">作りたいものを選んでください</h2>
-              <p className="kit-hub-lead">質問に答えると、開発費の目安がその場で分かります。</p>
+              <p className="kit-hub-lead">質問に答えると、開発費の目安が出ます。</p>
             </div>
             <div className="kit-hub-grid">
               {KITS.filter((k) => k.id !== 'webapp').map((k) => (
@@ -326,7 +326,10 @@ export default function App() {
       <div ref={estimateRef}>
         {kit && est && (
           <>
-            <div className="kit-picker hint-pulse hint-pulse-kit" ref={kitPickerRef}>
+            <div
+              className={`kit-picker${!kitId ? ' hint-pulse hint-pulse-kit' : ''}`}
+              ref={kitPickerRef}
+            >
               <div className="wrap">
                 <span className="lb">見積もる内容</span>
                 {KITS.filter((k) => k.id !== 'webapp').map((k) => (
@@ -377,7 +380,11 @@ export default function App() {
                       </button>
                     ))}
                   </div>
-                  <div className={`ctx-row${!environment ? ' hint-pulse hint-pulse-1' : ''}`}>
+                  <div
+                    className={`ctx-row${
+                      companySize && !environment ? ' hint-pulse hint-pulse-1' : ''
+                    }`}
+                  >
                     <span className="lb">使用環境</span>
                     {ENV_OPTIONS.map((o) => (
                       <button
@@ -407,6 +414,9 @@ export default function App() {
               answers={answers}
               est={est}
               industryName={preset.name}
+              companySize={companySize}
+              environment={environment}
+              industryId={industryId}
               fromHint={url.from}
               memo={memo}
               onMemoChange={(v) => setMemo(clampMemo(v))}
@@ -442,7 +452,7 @@ export default function App() {
               <button type="button" className="est-launch-btn" onClick={() => openEstimate()}>
                 概算見積もりを開く
               </button>
-              <span className="est-launch-hint">いくらで作れるか、質問に答えてその場で出します</span>
+              <span className="est-launch-hint">質問に答えると、開発費の目安が出ます</span>
             </div>
           )}
           <div className="tabs" role="tablist" aria-label="部署カテゴリ">
@@ -509,7 +519,7 @@ export default function App() {
                   </div>
                   <div className="cut">
                     <div className="big">−{fmtInt(result.hoursSaved)}時間</div>
-                    <div className="lab">毎月、これだけ手が空く</div>
+                    <div className="lab">毎月、これだけ作業時間が減る</div>
                   </div>
                 </div>
               </div>
@@ -541,7 +551,7 @@ export default function App() {
                 <div className="ch-head">
                   <h3>いつ元が取れるか（損益分岐）</h3>
                   <div className="legend">
-                    <span><i style={{ background: 'var(--blue)' }} />導入で得する累計</span>
+                    <span><i style={{ background: 'var(--blue)' }} />導入による効果の累計</span>
                     <span><i style={{ background: 'var(--red)' }} />かかるお金の累計</span>
                   </div>
                 </div>

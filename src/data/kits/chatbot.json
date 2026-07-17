@@ -19,9 +19,9 @@
     "casesLabel": "1人が1ヶ月に何回くらい探す／聞く？",
     "minutesLabel": "1回あたり、今はだいたい何分？",
     "reductionLabel": "導入でどれくらい速くなる？",
-    "reductionHint": "資料を探して答える時間がどれだけ消えるか。迷ったら70〜80%でOK。",
+    "reductionHint": "探す・答える時間がどれだけ減るかの目安。迷ったら70〜80%。",
     "otherLabel": "問い合わせ減・属人化解消など（年間）",
-    "otherHint": "同じ質問の繰り返しや、特定の人に頼るコストの削減。0でも構いません。",
+    "otherHint": "同じ質問の繰り返しや、特定の人への依存を減らした効果の目安。分からなければ0でも構いません。",
     "defaults": {
       "people": 50,
       "cases": 20,
@@ -35,7 +35,7 @@
     {
       "id": "customize",
       "label": "デモの画面は、どこまで作り変えますか？",
-      "hint": "値引きではなくメニューです。デモのまま使えるほど、工程が本当に消えます。",
+      "hint": "デモのまま使えるほど、工数が減ります。",
       "options": [
         {
           "value": "keep",
@@ -78,7 +78,7 @@
     {
       "id": "deadline",
       "label": "いつまでに必要ですか？",
-      "hint": "短いほど体制とリスクが増えます。急ぎは堂々と高くして大丈夫な項目です。",
+      "hint": "短いほど体制とリスクが増えます。",
       "options": [
         {
           "value": "relaxed",
@@ -100,7 +100,7 @@
     {
       "id": "login",
       "label": "ログイン・権限は必要ですか？",
-      "hint": "部署ごとに見せる資料を分けたい場合は「必要」です。",
+      "hint": "部署ごとに見せる資料を分けるなら「必要」です。",
       "options": [
         {
           "value": "no",
@@ -117,7 +117,7 @@
     {
       "id": "security",
       "label": "情報システム部門の審査はありますか？",
-      "hint": "未回答のあいだは「ある」前提で見積もります。無いと分かれば安くなります。",
+      "hint": "未回答のあいだは「ある」前提で見積もります。",
       "optional": true,
       "unansweredMode": "high",
       "options": [
@@ -136,7 +136,7 @@
     {
       "id": "legacy_data",
       "label": "過去のデータを取り込みますか？",
-      "hint": "未回答のあいだは「取り込む」前提です。既存Excelの掃除は工数が跳ねやすいです。",
+      "hint": "未回答のあいだは「取り込む」前提です。既存データの整理は工数が増えやすいです。",
       "optional": true,
       "unansweredMode": "high",
       "options": [
@@ -155,7 +155,7 @@
     {
       "id": "integration",
       "label": "既存システムとは、どうつなげますか？",
-      "hint": "APIがあるか、CSV受け渡しかで工数が大きく変わります。",
+      "hint": "API連携か、ファイル受け渡しかで工数が変わります。",
       "optional": true,
       "unansweredMode": "range",
       "options": [
@@ -207,7 +207,7 @@
     {
       "id": "excel_lock",
       "label": "いまのExcel様式は変えられますか？",
-      "hint": "「この様式そのままで」は再現コストが乗りやすいです。",
+      "hint": "様式を固定すると、再現コストが増えやすいです。",
       "optional": true,
       "unansweredMode": "range",
       "options": [
@@ -244,7 +244,7 @@
     {
       "id": "sla",
       "label": "障害時、いつ対応が必要ですか？",
-      "hint": "月額の保守原価に直結します。",
+      "hint": "月額の保守に影響します。",
       "optional": true,
       "unansweredMode": "range",
       "options": [
