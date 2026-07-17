@@ -367,13 +367,27 @@ body.embed .est .wrap{
   appearance:none;cursor:pointer;font-family:inherit;font-size:13.5px;font-weight:700;
   color:var(--ink);background:#fff;border:1.5px solid var(--line);
   padding:10px 16px;border-radius:10px;transition:.15s;text-align:left;
+  -webkit-tap-highlight-color:transparent;
 }
-.est-opt:hover{border-color:var(--blue);color:var(--blue)}
 .est-opt[aria-pressed="true"],
 .est-opt[aria-pressed="true"]:hover{
   background:var(--blue);border-color:var(--blue);color:#fff;font-weight:900;
 }
 .est-opt:focus-visible,.est-reset:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.est-opt:focus:not(:focus-visible){outline:none}
+
+/* ホバーはマウス操作のみ（タッチで青枠が残るのを防ぐ） */
+@media (hover:hover) and (pointer:fine){
+  .est-opt:hover{border-color:var(--blue);color:var(--blue)}
+  .est-opt[aria-pressed="true"]:hover{
+    background:var(--blue);border-color:var(--blue);color:#fff;
+  }
+}
+@media (hover:none){
+  .est-opt:active:not([aria-pressed="true"]){
+    background:var(--tint);border-color:#cfe0fb;color:var(--ink);
+  }
+}
 
 /* スマホ: 選択肢を全幅縦積み（幅のバラつきを解消） */
 @media(max-width:760px){
@@ -512,11 +526,13 @@ button.est-context:focus-visible{outline:3px solid var(--blue);outline-offset:2p
 }
 .est-panel .est-q:last-child{margin-bottom:0}
 .est-panel .est-opt{background:#fff;border-color:#c5d4ea;color:var(--ink)}
-.est-panel .est-opt:hover{border-color:var(--blue);color:var(--blue)}
 /* パネル内の白背景指定より強く、選択時は青地＋白太字を必ず出す */
 .est-panel .est-opt[aria-pressed="true"],
 .est-panel .est-opt[aria-pressed="true"]:hover{
   background:var(--blue);border-color:var(--blue);color:#fff;font-weight:900;
+}
+@media (hover:hover) and (pointer:fine){
+  .est-panel .est-opt:hover{border-color:var(--blue);color:var(--blue)}
 }
 .est-panel .est-details-toggle{background:#fff;border-color:#c5d4ea}
 .est-panel-step{margin-top:18px}
