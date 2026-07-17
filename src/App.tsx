@@ -3,6 +3,7 @@ import { calculate, fmtInt, fmtMan, fmtPayback, type Inputs } from './lib/calc';
 import { getPreset, FEATURED_PRESETS, OTHER_INDUSTRY_ID, type CategoryKey } from './lib/presets';
 import { estimate, type Answers } from './lib/estimate';
 import { KITS, defaultKitId, getKit } from './lib/kits';
+import { getBrand } from './lib/brand';
 import { readUrl, writeUrl, shareUrl, embedSnippet, MEMO_MAX_LENGTH, clampMemo } from './lib/url';
 import {
   SIZE_OPTIONS,
@@ -25,6 +26,9 @@ function Rich({ text }: { text: string }) {
 
 export default function App() {
   const url = useMemo(() => readUrl(), []);
+  const brand = useMemo(() => getBrand(url.brand), [url.brand]);
+  /** embed=minimal は親ページにブランドを任せる。通常 / embed+ui=full はヘッダー表示 */
+  const showChrome = url.ui === 'full';
 
   const [industryId, setIndustryId] = useState(getPreset(url.industry).id);
   const preset = getPreset(industryId);
@@ -204,16 +208,24 @@ export default function App() {
     size: companySize,
     environment,
     memo,
+    brand: url.brand,
+    ui: url.ui,
   };
 
   useEffect(() => {
     writeUrl({ ...urlArgs, embed: url.embed });
-  }, [industryId, catKey, inputs, answers, url.embed, kitId, url.from, companySize, environment, memo]);
+  }, [industryId, catKey, inputs, answers, url.embed, kitId, url.from, companySize, environment, memo, url.brand, url.ui]);
+
+  // ブランド属性（CSS の data-brand 用）
+  useEffect(() => {
+    document.body.dataset.brand = brand.id;
+  }, [brand.id]);
 
   // 埋め込み時：親フレームに高さを通知
   useEffect(() => {
     if (!url.embed) return;
     document.body.classList.add('embed');
+    if (showChrome) document.body.classList.add('embed-full');
     const post = () => {
       window.parent?.postMessage(
         { type: 'roi-simulator:height', height: document.documentElement.scrollHeight },
@@ -223,8 +235,11 @@ export default function App() {
     post();
     const ro = new ResizeObserver(post);
     if (bodyRef.current) ro.observe(bodyRef.current);
-    return () => ro.disconnect();
-  }, [url.embed]);
+    return () => {
+      ro.disconnect();
+      document.body.classList.remove('embed-full');
+    };
+  }, [url.embed, showChrome]);
 
   const copy = async (text: string, kind: string) => {
     try {
@@ -249,11 +264,20 @@ export default function App() {
 
   return (
     <div ref={bodyRef}>
-      {!url.embed && (
+      {showChrome && (
         <>
           <header className="bar">
             <div className="wrap">
-              <div className="brand"><span className="dot" />AXEON</div>
+              <div className="brand" data-brand={brand.id}>
+                {brand.logoSrc ? (
+                  <img src={brand.logoSrc} alt={brand.name} className="brand-logo" />
+                ) : (
+                  <>
+                    <span className="dot" />
+                    {brand.name}
+                  </>
+                )}
+              </div>
               <div className="tag" title={preset.tag}>{preset.tag}</div>
               {KITS.length > 0 && (
                 <button
@@ -288,7 +312,7 @@ export default function App() {
         </>
       )}
 
-      {url.embed && !kit && KITS.length > 0 && (
+      {url.embed && !showChrome && !kit && KITS.length > 0 && (
         <div className="est-launch embed-launch kit-hub">
           <div className="wrap">
             <div className="kit-hub-head">
@@ -361,8 +385,8 @@ export default function App() {
                 </button>
               </div>
             </div>
-            {/* 共通コンテキスト: 本体では常時。embed は URL 指定時のみ反映（UIは最短のため非表示） */}
-            {!url.embed && (
+            {/* 共通コンテキスト: フルUIでは常時。minimal embed は URL 指定時のみ反映（UIは最短のため非表示） */}
+            {showChrome && (
               <div className="ctx-picker">
                 <div className="wrap">
                   <div className={`ctx-row${!companySize ? ' hint-pulse hint-pulse-0' : ''}`}>
@@ -421,10 +445,10 @@ export default function App() {
               memo={memo}
               onMemoChange={(v) => setMemo(clampMemo(v))}
               memoMaxLength={MEMO_MAX_LENGTH}
-              contextNotes={url.embed ? ctxNotes : []}
+              contextNotes={!showChrome ? ctxNotes : []}
               contextInteractive
               onScrollToPickers={() => {
-                const target = url.embed ? kitPickerRef.current : pickerRef.current;
+                const target = !showChrome ? kitPickerRef.current : pickerRef.current;
                 (target ?? kitPickerRef.current)?.scrollIntoView({
                   behavior: 'smooth',
                   block: 'start',
@@ -576,13 +600,13 @@ export default function App() {
         <div className="wrap">
           <div className="msg"><Rich text={category.summary} /></div>
           <div className="actions">
-            {!url.embed && (
+            {showChrome && (
               <button className="cta ghost"
-                      onClick={() => copy(embedSnippet(urlArgs), 'embed')}>
+                      onClick={() => copy(embedSnippet({ ...urlArgs, ui: 'minimal' }), 'embed')}>
                 {copied === 'embed' ? 'コピーしました' : '埋め込みタグをコピー'}
               </button>
             )}
-            <button className="cta" onClick={() => copy(shareUrl(urlArgs), 'link')}>
+            <button className="cta" onClick={() => copy(shareUrl({ ...urlArgs, ui: 'full' }), 'link')}>
               {copied === 'link' ? 'コピーしました' : 'この試算をリンクで送る'}
             </button>
           </div>

@@ -11,7 +11,7 @@ npm run dev     # http://localhost:5173
 npm run build   # dist/ に出力
 ```
 
-## 設計：3層構造
+## 設計：3層構造 + 切替軸
 
 コピペで各デモに配ると**ロジック修正が過去のデモに反映されず腐る**ため、
 「試算アプリは1個だけデプロイして、各デモはiframeで参照する」構成にしている。
@@ -24,9 +24,32 @@ src/
 ├─ data/presets/*.json ← ③ プリセット層：業界ごとの数字と文言
 │                        新業界を足す＝JSONを1個置くだけ（自動で読み込まれる）
 ├─ data/kits/*.json   ← ④ kit層：見積もり質問と係数（用途別に追加）
-├─ components/        ← ⑤ UI層
+├─ lib/brand.ts       ← ⑤ ブランド層：社名・ロゴだけ（axeon / ideal）
+├─ components/        ← ⑥ UI層
 └─ lib/url.ts            URL同期・共有リンク・埋め込みタグ生成
 ```
+
+### URL での切替（1アプリ）
+
+```text
+ ├── brand=axeon | ideal     … ロゴ・社名だけ
+ ├── industry=...            … LP・業種ページで固定
+ ├── kit=...                 … 何を作るか（必要なら固定）
+ └── embed / ui              … ヘッダー出すか・親に任せるか
+```
+
+| 用途 | 例 |
+|---|---|
+| AXEON フル版 | `/?` または `/?brand=axeon` |
+| ideal フル版 | `/?brand=ideal` |
+| フル版を iframe（ヘッダーあり） | `/embed?brand=ideal&ui=full&embed=1` |
+| LP・デモの薄い埋め込み | `/embed?kit=chatbot&industry=manufacturing&embed=1` |
+| 顧客への送付 | `/?kit=chatbot&industry=construction` |
+
+**kit / 送付URLの一覧:** [docs/kit-url-catalog.md](docs/kit-url-catalog.md)
+
+ロゴ画像を使う場合は `public/brands/` に置き、`src/lib/brand.ts` の `logoSrc` を有効化する。
+ビルド時デフォルトブランド: `VITE_DEFAULT_BRAND=ideal`
 
 ## 新しい業界を追加する
 
@@ -85,21 +108,35 @@ src/
 |---|---|---|
 | `industry` | 業界ID | `construction` |
 | `cat` | カテゴリ | `field` / `internal` / `dashboard` |
+| `kit` | 見積キットID | `chatbot` / `report-auto` など |
+| `brand` | 社名・ロゴ | `axeon`（省略可） / `ideal` |
+| `embed` | `1` で埋め込みモード | 高さ postMessage。ヘッダーは `ui` 次第 |
+| `ui` | `full` / `minimal` | embed 時のみ。`full` でヘッダー表示 |
+| `from` | 流入元メモ | `lp-mfg` / `demo-x` |
 | `people` `cases` `min` `red` | 人数・件数・所要分・削減率 | `80` `20` `25` `75` |
 | `wage` `other` `init` `mo` | 時給・その他効果・初期費用・月額 | `3500` `3000000` `3000000` `250000` |
-| `embed` | `1` で埋め込みモード | ヘッダー・業界セレクターを隠す |
 
 ```
 https://<your-app>.vercel.app/?industry=construction&cat=field&people=80&red=75
+https://<your-app>.vercel.app/?brand=ideal
+https://<your-app>.vercel.app/embed?kit=chatbot&industry=manufacturing&embed=1
 ```
 
 ## 各デモへの埋め込み
 
-Vite / Next.js / 素のHTML どれでも同じ2行。画面右下の「埋め込みタグをコピー」から取得できる。
+Vite / Next.js / 素のHTML どれでも同じ2行。画面右下の「埋め込みタグをコピー」から取得できる
+（コピー時は **minimal**＝ヘッダーなし。フル版埋め込みは下の `ui=full` を使う）。
 
 ```html
-<iframe src="https://<your-app>.vercel.app/embed?industry=construction&cat=field&embed=1"
-        style="width:100%;border:0;border-radius:14px" height="1180" loading="lazy"></iframe>
+<iframe src="https://<your-app>.vercel.app/embed?industry=construction&cat=field&kit=chatbot&embed=1"
+        style="width:100%;border:0;border-radius:14px" height="1400" loading="lazy"></iframe>
+```
+
+自社サイトに **フル版＋社名** を埋め込む例:
+
+```html
+<iframe src="https://<your-app>.vercel.app/embed?brand=ideal&ui=full&embed=1"
+        style="width:100%;border:0;border-radius:14px" height="1400" loading="lazy"></iframe>
 ```
 
 **高さ自動調整**（任意）。埋め込み側は親に高さを `postMessage` で通知する：

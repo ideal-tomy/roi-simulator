@@ -7,6 +7,17 @@ import {
   type CompanySize,
   type Environment,
 } from './context';
+import { parseBrand, type BrandId } from './brand';
+
+/** 埋め込み時の UI 密度 */
+export type UiMode = 'minimal' | 'full';
+
+export function parseUi(raw: string | null | undefined, embed: boolean): UiMode {
+  if (raw === 'full') return 'full';
+  if (raw === 'minimal') return 'minimal';
+  // embed 時は親がブランドを持つ想定でヘッダー非表示。通常はフル。
+  return embed ? 'minimal' : 'full';
+}
 
 /* URLパラメータ名（短縮形）と Inputs のキーの対応 */
 const MAP: Record<string, keyof Inputs> = {
@@ -42,6 +53,8 @@ export type UrlState = {
   inputs: Partial<Inputs>;
   answers: Answers;
   embed: boolean;
+  brand: BrandId;
+  ui: UiMode;
 };
 
 export function readUrl(): UrlState {
@@ -61,6 +74,8 @@ export function readUrl(): UrlState {
   });
 
   const cat = q.get('cat');
+  const embed =
+    q.get('embed') === '1' || window.location.pathname.replace(/\/$/, '') === '/embed';
   return {
     industry: q.get('industry'),
     category: cat === 'field' || cat === 'internal' || cat === 'dashboard' ? cat : null,
@@ -71,7 +86,9 @@ export function readUrl(): UrlState {
     memo: clampMemo(q.get('memo')),
     inputs,
     answers,
-    embed: q.get('embed') === '1' || window.location.pathname.replace(/\/$/, '') === '/embed',
+    embed,
+    brand: parseBrand(q.get('brand')),
+    ui: parseUi(q.get('ui'), embed),
   };
 }
 
@@ -86,6 +103,8 @@ type BuildArgs = {
   environment?: Environment | null;
   memo?: string | null;
   embed?: boolean;
+  brand?: BrandId | null;
+  ui?: UiMode | null;
 };
 
 function buildParams({
@@ -99,6 +118,8 @@ function buildParams({
   environment,
   memo,
   embed,
+  brand,
+  ui,
 }: BuildArgs) {
   const q = new URLSearchParams();
   q.set('industry', industry);
@@ -109,6 +130,9 @@ function buildParams({
   if (environment) q.set('env', environment);
   const memoTrim = clampMemo(memo);
   if (memoTrim) q.set('memo', memoTrim);
+  if (brand && brand !== 'axeon') q.set('brand', brand);
+  // embed + full のときだけ明示（通常表示は ui 省略で full）
+  if (embed && ui === 'full') q.set('ui', 'full');
   if (embed) q.set('embed', '1');
   for (const [param, key] of Object.entries(MAP)) q.set(param, String(inputs[key]));
   if (answers) {
