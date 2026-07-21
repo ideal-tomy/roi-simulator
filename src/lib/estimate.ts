@@ -60,6 +60,11 @@ export type Kit = {
     title: string;
     lead: string;
   };
+  /**
+   * フッター締め文（`**強調**` 可）。
+   * ある場合は brand.closing / 業種カテゴリ summary より優先。
+   */
+  closing?: string;
 };
 
 export type Answers = Record<string, string>;

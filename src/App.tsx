@@ -81,6 +81,8 @@ export default function App() {
     lead: category.lead,
   };
   const kitHeroActive = Boolean(kit?.hero);
+  /** フッター締め: kit → brand → 業種カテゴリ */
+  const closingCopy = kit?.closing ?? brand.closing ?? category.summary;
 
   /** デモ／共有リンクで kit 指定入場 → 見積質問へ自動スクロール */
   useEffect(() => {
@@ -659,7 +661,7 @@ export default function App() {
 
       <section className="summary">
         <div className="wrap">
-          <div className="msg"><Rich text={category.summary} /></div>
+          <div className="msg"><Rich text={closingCopy} /></div>
           <div className="actions">
             {showChrome && (
               <button className="cta ghost"
