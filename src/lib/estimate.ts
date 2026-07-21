@@ -51,6 +51,15 @@ export type Kit = {
   questions: KitQuestion[];
   /** かんたん入力（ROI）のラベル・初期値。無い場合は業種カテゴリにフォールバック */
   roi?: KitRoiProfile;
+  /**
+   * デモ／kit 直リンク時のヒーロー文言。
+   * ある場合は業種カテゴリの eyebrow/title/lead より優先（今後キットごとに足す）。
+   */
+  hero?: {
+    eyebrow: string;
+    title: string;
+    lead: string;
+  };
 };
 
 export type Answers = Record<string, string>;

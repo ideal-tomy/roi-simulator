@@ -67,6 +67,7 @@ export default function App() {
   const estimateRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
   const kitPickerRef = useRef<HTMLDivElement>(null);
+  const wizardAnchorRef = useRef<HTMLDivElement>(null);
 
   const est = useMemo(
     () => (kit ? estimate(kit, answers, estimateCtx) : null),
@@ -74,6 +75,18 @@ export default function App() {
   );
 
   const roiCopy = useMemo(() => getRoiCopy(kit, category), [kit, category]);
+  const heroCopy = kit?.hero ?? {
+    eyebrow: category.eyebrow,
+    title: category.title,
+    lead: category.lead,
+  };
+  const kitHeroActive = Boolean(kit?.hero);
+
+  /** デモ／共有リンクで kit 指定入場 → 見積質問へ自動スクロール */
+  useEffect(() => {
+    if (url.kit) setScrollToEstimate(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const openEstimate = (id?: string | null) => {
     const next = id ?? kitId ?? defaultKitId();
@@ -94,11 +107,26 @@ export default function App() {
   useEffect(() => {
     if (!scrollToEstimate || !kit) return;
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    estimateRef.current?.scrollIntoView({
-      behavior: reduced ? 'auto' : 'smooth',
-      block: 'start',
+    // ヒーロー差し替え後のレイアウト確定を待ってから見積質問へ
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      const target = wizardAnchorRef.current ?? estimateRef.current;
+      target?.scrollIntoView({
+        behavior: reduced ? 'auto' : 'smooth',
+        block: 'start',
+      });
+      setScrollToEstimate(false);
+    };
+    const raf1 = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.setTimeout(run, 40);
+      });
     });
-    setScrollToEstimate(false);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf1);
+    };
   }, [scrollToEstimate, kit]);
 
   // kit 切替時: ROI 効果側の defaults を適用（initial/monthly は維持 → 見積連動 effect が担当）
@@ -291,25 +319,46 @@ export default function App() {
               )}
             </div>
           </header>
-          <div className="picker" ref={pickerRef}>
-            <div className="wrap">
-              <span className="lb">業界を選ぶ</span>
-              {FEATURED_PRESETS.map((p) => (
-                <button key={p.id} aria-pressed={p.id === industryId}
-                        onClick={() => switchIndustry(p.id)}>
-                  {p.name}
+          {/* デモ直リンク（?kit=）では業界バーを隠し、見積へ直行 */}
+          {!url.kit && (
+            <div className="picker" ref={pickerRef}>
+              <div className="wrap">
+                <span className="lb">業界を選ぶ</span>
+                {FEATURED_PRESETS.map((p) => (
+                  <button key={p.id} aria-pressed={p.id === industryId}
+                          onClick={() => switchIndustry(p.id)}>
+                    {p.name}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  aria-pressed={industryId === OTHER_INDUSTRY_ID}
+                  onClick={() => switchIndustry(OTHER_INDUSTRY_ID)}
+                >
+                  その他
                 </button>
-              ))}
-              <button
-                type="button"
-                aria-pressed={industryId === OTHER_INDUSTRY_ID}
-                onClick={() => switchIndustry(OTHER_INDUSTRY_ID)}
-              >
-                その他
-              </button>
+              </div>
             </div>
-          </div>
+          )}
         </>
+      )}
+
+      {/* kit.hero があるデモ直リンク: 先頭で業種ヒーローではなく kit 文言を出す */}
+      {kitHeroActive && (
+        <section className="hero hero-kit">
+          <div className="wrap">
+            <div className="eyebrow">{heroCopy.eyebrow}</div>
+            <h1>
+              {heroCopy.title.split('\n').map((line, i) => (
+                <span key={i}>
+                  {line}
+                  <br />
+                </span>
+              ))}
+            </h1>
+            <p className="lead">{heroCopy.lead}</p>
+          </div>
+        </section>
       )}
 
       {url.embed && !showChrome && !kit && KITS.length > 0 && (
@@ -350,6 +399,7 @@ export default function App() {
       <div ref={estimateRef}>
         {kit && est && (
           <>
+            {!url.kit && (
             <div
               className={`kit-picker${!kitId ? ' hint-pulse hint-pulse-kit' : ''}`}
               ref={kitPickerRef}
@@ -385,6 +435,7 @@ export default function App() {
                 </button>
               </div>
             </div>
+            )}
             {/* 共通コンテキスト: フルUIでは常時。minimal embed は URL 指定時のみ反映（UIは最短のため非表示） */}
             {showChrome && (
               <div className="ctx-picker">
@@ -433,6 +484,7 @@ export default function App() {
                 </div>
               </div>
             )}
+            <div ref={wizardAnchorRef} className="wizard-anchor">
             <EstimateWizard
               kit={kit}
               answers={answers}
@@ -447,30 +499,38 @@ export default function App() {
               memoMaxLength={MEMO_MAX_LENGTH}
               contextNotes={!showChrome ? ctxNotes : []}
               contextInteractive
-              onScrollToPickers={() => {
-                const target = !showChrome ? kitPickerRef.current : pickerRef.current;
-                (target ?? kitPickerRef.current)?.scrollIntoView({
-                  behavior: 'smooth',
-                  block: 'start',
-                });
-              }}
+              onScrollToPickers={
+                url.kit
+                  ? undefined
+                  : () => {
+                      const target = !showChrome ? kitPickerRef.current : pickerRef.current;
+                      (target ?? kitPickerRef.current)?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start',
+                      });
+                    }
+              }
               onAnswer={(qid, value) =>
                 setAnswers((a) => ({ ...a, [qid]: a[qid] === value ? '' : value }))
               }
               onReset={() => setAnswers({})}
-            />          </>
+            />
+            </div>
+          </>
         )}
       </div>
 
+      {/* 通常入場のヒーロー（kit.hero 時は先頭に出したので重複させない） */}
+      {!kitHeroActive && (
       <section className="hero">
         <div className="wrap">
-          <div className="eyebrow">{category.eyebrow}</div>
+          <div className="eyebrow">{heroCopy.eyebrow}</div>
           <h1>
-            {category.title.split('\n').map((line, i) => (
+            {heroCopy.title.split('\n').map((line, i) => (
               <span key={i}>{line}<br /></span>
             ))}
           </h1>
-          <p className="lead">{category.lead}</p>
+          <p className="lead">{heroCopy.lead}</p>
           {!kit && KITS.length > 0 && (
             <div className="est-launch hero-launch">
               <button type="button" className="est-launch-btn" onClick={() => openEstimate()}>
@@ -490,6 +550,7 @@ export default function App() {
           </div>
         </div>
       </section>
+      )}
 
       <div className="main">
         <div className="wrap">
