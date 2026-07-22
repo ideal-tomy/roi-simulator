@@ -43,6 +43,10 @@ export default function App() {
   const [answers, setAnswers] = useState<Answers>(url.answers);
   const [kitId, setKitId] = useState<string | null>(url.kit);
   const kit = useMemo(() => getKit(kitId), [kitId]);
+  /** デモ直リンク（?kit=）入場。マウント時固定。閉じた後の閲覧モード復帰判定に使う */
+  const enteredWithKit = useMemo(() => Boolean(url.kit), [url.kit]);
+  /** 見積中かつデモ直リンク: 業界／kit バーを隠して最短導線 */
+  const estimateDeepLink = enteredWithKit && Boolean(kit);
   const [companySize, setCompanySize] = useState<CompanySize | null>(url.size);
   const [environment, setEnvironment] = useState<Environment | null>(url.environment);
   const [memo, setMemo] = useState(url.memo);
@@ -59,6 +63,7 @@ export default function App() {
 
   const [copied, setCopied] = useState<string | null>(null);
   const [scrollToEstimate, setScrollToEstimate] = useState(false);
+  const [scrollToBrowse, setScrollToBrowse] = useState(false);
   const [estInView, setEstInView] = useState(true);
   const [isDesktop, setIsDesktop] = useState(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 761px)').matches : true,
@@ -86,9 +91,8 @@ export default function App() {
 
   /** デモ／共有リンクで kit 指定入場 → 見積質問へ自動スクロール */
   useEffect(() => {
-    if (url.kit) setScrollToEstimate(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (enteredWithKit) setScrollToEstimate(true);
+  }, [enteredWithKit]);
 
   const openEstimate = (id?: string | null) => {
     const next = id ?? kitId ?? defaultKitId();
@@ -104,6 +108,7 @@ export default function App() {
       ...category.defaults,
       ...(manualCost ? { initial: s.initial, monthly: s.monthly } : {}),
     }));
+    setScrollToBrowse(true);
   };
 
   useEffect(() => {
@@ -130,6 +135,31 @@ export default function App() {
       window.cancelAnimationFrame(raf1);
     };
   }, [scrollToEstimate, kit]);
+
+  /** 見積クローズ後 → 閲覧モード（業界ピッカー／ヒーロー先頭）へ */
+  useEffect(() => {
+    if (!scrollToBrowse || kit) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let cancelled = false;
+    const run = () => {
+      if (cancelled) return;
+      const target = pickerRef.current ?? bodyRef.current;
+      target?.scrollIntoView({
+        behavior: reduced ? 'auto' : 'smooth',
+        block: 'start',
+      });
+      setScrollToBrowse(false);
+    };
+    const raf1 = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        window.setTimeout(run, 40);
+      });
+    });
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(raf1);
+    };
+  }, [scrollToBrowse, kit]);
 
   // kit 切替時: ROI 効果側の defaults を適用（initial/monthly は維持 → 見積連動 effect が担当）
   useEffect(() => {
@@ -321,8 +351,8 @@ export default function App() {
               )}
             </div>
           </header>
-          {/* デモ直リンク（?kit=）では業界バーを隠し、見積へ直行 */}
-          {!url.kit && (
+          {/* 見積オープン中（デモ直リンク含む）は業界バーを隠す。閉じた後は閲覧モードで表示 */}
+          {!kit && (
             <div className="picker" ref={pickerRef}>
               <div className="wrap">
                 <span className="lb">業界を選ぶ</span>
@@ -401,7 +431,7 @@ export default function App() {
       <div ref={estimateRef}>
         {kit && est && (
           <>
-            {!url.kit && (
+            {!estimateDeepLink && (
             <div
               className={`kit-picker${!kitId ? ' hint-pulse hint-pulse-kit' : ''}`}
               ref={kitPickerRef}
@@ -502,7 +532,7 @@ export default function App() {
               contextNotes={!showChrome ? ctxNotes : []}
               contextInteractive
               onScrollToPickers={
-                url.kit
+                estimateDeepLink
                   ? undefined
                   : () => {
                       const target = !showChrome ? kitPickerRef.current : pickerRef.current;
