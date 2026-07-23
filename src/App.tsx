@@ -17,6 +17,7 @@ import { Slider, Money } from './components/Fields';
 import { BreakEvenChart } from './components/BreakEvenChart';
 import { EstimateWizard } from './components/EstimateWizard';
 import { EstimateFloat } from './components/EstimateFloat';
+import { SiteContextBar } from './components/SiteContextBar';
 
 /** **強調** を <b> に変換する軽量マークアップ */
 function Rich({ text }: { text: string }) {
@@ -265,6 +266,7 @@ export default function App() {
     kit: kitId,
     answers,
     from: url.from,
+    returnUrl: url.returnUrl,
     size: companySize,
     environment,
     memo,
@@ -274,7 +276,7 @@ export default function App() {
 
   useEffect(() => {
     writeUrl({ ...urlArgs, embed: url.embed });
-  }, [industryId, catKey, inputs, answers, url.embed, kitId, url.from, companySize, environment, memo, url.brand, url.ui]);
+  }, [industryId, catKey, inputs, answers, url.embed, kitId, url.from, url.returnUrl, companySize, environment, memo, url.brand, url.ui]);
 
   // ブランド属性（CSS の data-brand 用）
   useEffect(() => {
@@ -346,11 +348,17 @@ export default function App() {
                   aria-pressed={!!kit}
                   onClick={() => (kit ? closeEstimate() : openEstimate())}
                 >
-                  {kit ? '見積もりを閉じる' : '概算見積もりを開く'}
+                  {kit ? '見積もりを閉じる' : '概算見積もりへ'}
                 </button>
               )}
             </div>
           </header>
+          <SiteContextBar
+            brand={brand}
+            from={url.from}
+            kitId={kitId}
+            returnUrl={url.returnUrl}
+          />
           {/* 見積オープン中（デモ直リンク含む）は業界バーを隠す。閉じた後は閲覧モードで表示 */}
           {!kit && (
             <div className="picker" ref={pickerRef}>
@@ -566,7 +574,7 @@ export default function App() {
           {!kit && KITS.length > 0 && (
             <div className="est-launch hero-launch">
               <button type="button" className="est-launch-btn" onClick={() => openEstimate()}>
-                概算見積もりを開く
+                概算見積もりへ
               </button>
               <span className="est-launch-hint">質問に答えると、開発費の目安が出ます</span>
             </div>

@@ -47,6 +47,8 @@ export type UrlState = {
   category: CategoryKey | null;
   kit: string | null;
   from: string | null;
+  /** ideal サイト等への戻り先（絶対URL）。kit を閉じても維持 */
+  returnUrl: string | null;
   size: CompanySize | null;
   environment: Environment | null;
   memo: string;
@@ -81,6 +83,7 @@ export function readUrl(): UrlState {
     category: cat === 'field' || cat === 'internal' || cat === 'dashboard' ? cat : null,
     kit: q.get('kit'),
     from: q.get('from'),
+    returnUrl: q.get('return'),
     size: parseCompanySize(q.get('size')),
     environment: parseEnvironment(q.get('env')),
     memo: clampMemo(q.get('memo')),
@@ -99,6 +102,7 @@ type BuildArgs = {
   kit?: string | null;
   answers?: Answers;
   from?: string | null;
+  returnUrl?: string | null;
   size?: CompanySize | null;
   environment?: Environment | null;
   memo?: string | null;
@@ -114,6 +118,7 @@ function buildParams({
   kit,
   answers,
   from,
+  returnUrl,
   size,
   environment,
   memo,
@@ -126,6 +131,7 @@ function buildParams({
   q.set('cat', category);
   if (kit) q.set('kit', kit);
   if (from) q.set('from', from);
+  if (returnUrl) q.set('return', returnUrl);
   if (size) q.set('size', size);
   if (environment) q.set('env', environment);
   const memoTrim = clampMemo(memo);

@@ -1,4 +1,4 @@
-/** 社名・ロゴ・締め文・見た目トークン。計算・kit・業種ロジックには触れない。 */
+/** 社名・ロゴ・締め文・見た目・サイト導線。計算・kit・業種ロジックには触れない。 */
 
 export type BrandId = 'axeon' | 'ideal';
 
@@ -16,7 +16,14 @@ export type Brand = {
    * 優先度: kit.closing → brand.closing → 業種カテゴリ summary
    */
   closing?: string;
+  /**
+   * 自社サイトのオリジン（末尾スラッシュなし）。
+   * `from=ideal-site` 時の「サイトに戻る」先。
+   */
+  homeUrl?: string;
 };
+
+const IDEAL_HOME_DEFAULT = 'https://ideal-official-three.vercel.app';
 
 export const BRANDS: Record<BrandId, Brand> = {
   axeon: {
@@ -30,6 +37,7 @@ export const BRANDS: Record<BrandId, Brand> = {
     name: 'ideal',
     // logoSrc: '/brands/ideal.svg',
     closing: '現場の手間を、**本業と決断の時間**に変える。',
+    homeUrl: IDEAL_HOME_DEFAULT,
   },
 };
 
@@ -43,5 +51,9 @@ export function parseBrand(raw: string | null | undefined): BrandId {
 }
 
 export function getBrand(id: BrandId): Brand {
-  return BRANDS[id];
+  const base = BRANDS[id];
+  if (id !== 'ideal') return base;
+  const override = import.meta.env.VITE_IDEAL_SITE_URL?.replace(/\/$/, '');
+  if (!override) return base;
+  return { ...base, homeUrl: override };
 }
