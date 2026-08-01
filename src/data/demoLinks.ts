@@ -12,7 +12,7 @@ export const DEMO_LINKS: DemoLink[] = [
   {
     id: 'shift',
     label: 'シフト管理デモ',
-    href: 'https://shift-demo.vercel.app/',
+    href: 'https://shift-demo-ten.vercel.app/',
     kits: ['shift-management'],
   },
   {
